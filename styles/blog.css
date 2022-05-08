@@ -1,0 +1,117 @@
+body {
+    background-color: gray;
+    width:80%;
+    margin:0 auto;
+    max-width:700px;
+    min-width:700px;
+  }
+  
+  
+  nav a {
+    padding:1em;
+    text-size-adjust: 3em;
+  }
+  nav  {
+    background-color: #264027;
+    padding:8px;
+    flex:space-evenly;
+    gap:60px 20px;
+    column-gap: 20px;
+  }
+
+  nav a {
+    color: #F4EBD9;
+    font-size: 1.5em;
+    line-height: 4em;
+  }
+
+ 
+
+  .logo-box img {
+    border-radius: 50%;
+    height: 80px;
+    width: 80px;
+    margin: auto auto;
+    display: block;
+    float:left;
+    padding: 1em;
+  }
+  
+  .blog{
+    background:white;
+    width:50%;
+    margin:0 auto;
+    padding: 25px;
+    border: 8px solid black;
+    max-width:500px;
+    min-width:500px;
+  }
+
+  .my-image {
+    border: 8px solid black;
+    width: 300px;
+    margin: 0 auto;
+    display: block;
+  }
+  .post-title{
+      text-align: center;
+      font-size: 2em;
+      font-weight: bold;
+  }
+  .post-paragraph{
+      width:400px;
+      margin:0 auto;
+      font-size: 1.3em;
+  }
+
+  .music-link a:hover {
+    color: #999999;
+  }
+  .music-link a:visited {
+    color: white;
+  }
+  .music-link {
+    text-align: center;
+    padding: auto auto;
+  }
+
+  main {
+    background-color: #6D4C3D;
+    padding-bottom: 20px;
+  }
+   h1 {
+    text-align: center;
+    margin:0;
+    padding:1em;
+  }
+
+  footer {
+    background-color: #263F27;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .copyright {
+    color: white;
+    margin:auto auto;
+    padding: auto auto;
+    text-align:center;
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
