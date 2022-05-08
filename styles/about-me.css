@@ -1,0 +1,191 @@
+div form label {
+    padding: 20px;
+   
+  }
+  
+  
+  nav h1 a{
+    padding:1em;
+  }
+  
+  .my-home-page{
+    text-align:center;
+    margin:0;
+    padding:1em;
+  }
+  
+  
+  
+  
+  .ending{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+   padding-top:2em;
+  }
+  .form{
+    grid-column:1/2;
+    justify-self:center;
+    padding:2em;
+    
+  }
+  
+  .contact-us-image{
+    grid-column:2/3;
+    justify-self:center;
+    padding:2em;
+  }
+  
+  .white-letters{
+    color:white;
+  }
+  
+  
+  .blog{
+    background:white;
+    width:50%;
+    margin:0 auto;
+    padding: 25px;
+    border: 8px solid black;
+    max-width:500px;
+    min-width:500px;
+  }
+  
+  .intro {
+    text-align: center;
+    margin:0;
+    padding:1em;
+    
+  }
+  
+  .music-link a:hover {
+    color: #999999;
+  }
+  .music-link a:visited {
+    color: white;
+  }
+  .music-link {
+    text-align: center;
+    color: white;
+    padding: auto auto;
+    
+  }
+  main {
+    background-color: #6D4C3D;
+    padding-bottom: 20px;
+    
+  }
+  
+  .my-video {
+    border: 8px solid black;
+    width:  440px;
+    height: 245px;
+    padding: auto auto; 
+    
+    }
+  #videos{
+    padding-left: 20%;
+    padding-top:1px;
+    padding-bottom: 1px;
+    color:#6D4C3D;
+  }
+  .sorting{
+    padding-left: 140px;
+  }
+  
+  
+  /*
+    #6D4C3D
+    -
+    brown
+    #B1F8F2
+    -
+    baby
+    blue
+    #A39A92
+    -
+    gray
+    #2C5530
+    -
+    green
+    #264027
+    -
+    dark
+    green
+    --!/
+    > 
+  */
+  header {
+    display: inline;
+    background-color:#6D4C3D;
+  }
+  
+  header div {
+    float:left;
+    padding: 1em;
+  }
+  
+  header h2 {
+    float: right;
+  }
+  
+  .copyright {
+    color: white;
+    margin:auto auto;
+    padding: auto auto;
+    text-align:center;
+  }
+  
+  footer {
+    background-color: #263F27;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .logo-box img {
+    border-radius: 50%;
+    height: 80px;
+    width: 80px;
+    margin: auto auto;
+    display: block;
+    
+     
+   
+  }
+  
+  nav h1 {
+    background-color: #264027;
+    text-align: center;
+    margin: 0 auto;
+  }
+  nav a {
+    color: #F4EBD9;
+    font-size: 1.1em;
+    line-height: 4em;
+  }
+  nav a:hover {
+    color: #999999;
+  }
+  
+  body {
+    background-color: gray;
+    width:80%;
+    margin:0 auto;
+     max-width:700px;
+    min-width:700px;
+  }
+  
+  
+  
+  
+  html{
+    background-color:gray;
+    
+  }
+  
+  .my-image {
+    border: 8px solid black;
+    width: 300px;
+    margin: 0 auto;
+    display: block;
+  }
+  
