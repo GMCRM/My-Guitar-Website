@@ -29,14 +29,11 @@ body {
 
   .logo-box img {
     border-radius: 50%;
-    height: 80px;
-    width: 80px;
-    margin: auto auto;
-    display: block;
+    height: 5.3em;
+    width: 5.3em;
     float:left;
     padding: 1em;
   }
-  
   .blog{
     background:white;
     width:50%;
