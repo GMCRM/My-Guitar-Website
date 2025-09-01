@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+:root {
+  /* Your custom forest grove color palette */
+  --light-green: #87aa6a; /* Light forest green */
+  --medium-green: #66732c; /* Medium forest green */
+  --dark-green: #535925; /* Dark forest green */
+  --light-brown: #bc6a1b; /* Light bark brown */
+  --dark-brown: #602718; /* Dark bark brown */
+
+  /* Additional derived colors for backgrounds */
+  --forest-50: #f4f7f0; /* Very light forest tint */
+  --forest-100: #e8f1dc; /* Light forest background */
+  --cream-50: #fef9f5; /* Light cream */
+  --cream-100: #fdf4ed; /* Medium cream */
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--forest-50);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--light-brown);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--dark-brown);
+}
+
+/* Smooth animations */
+* {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Focus styles for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--light-brown);
+  outline-offset: 2px;
+}
+
+/* Custom utility classes */
+.text-gradient {
+  color: var(--dark-brown);
+}
+
+.bg-gradient-earthy {
+  background-color: var(--forest-50);
+}
+
+.bg-gradient-forest {
+  background-color: var(--dark-green);
+}
+
+.bg-gradient-warm {
+  background-color: var(--light-brown);
+}
+
+.bg-gradient-deep-forest {
+  background-color: var(--dark-green);
+}
+
+.bg-gradient-wood {
+  background-color: var(--dark-brown);
+}
+
+.bg-gradient-autumn {
+  background-color: var(--forest-100);
+}
+
+.bg-gradient-earth {
+  background-color: var(--cream-50);
+}
+
+.shadow-soft {
+  box-shadow: 0 4px 20px rgba(188, 106, 27, 0.1);
+}
+
+.shadow-warm {
+  box-shadow: 0 8px 30px rgba(188, 106, 27, 0.15);
+}
+
+.shadow-green {
+  box-shadow: 0 8px 30px rgba(83, 89, 37, 0.15);
+}
+
+.shadow-forest {
+  box-shadow: 0 12px 40px rgba(102, 115, 44, 0.2);
+}
+
+.border-gradient {
+  border: 2px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+    linear-gradient(135deg, var(--light-brown), var(--dark-green)) border-box;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(244, 235, 217, 0.3);
+}
+
+.glass-forest {
+  background: rgba(44, 85, 48, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(177, 248, 242, 0.2);
+}
+
+/* Subtle, organic textures */
+.texture-subtle {
+  background-image: linear-gradient(
+      45deg,
+      rgba(188, 106, 27, 0.02) 25%,
+      transparent 25%
+    ),
+    linear-gradient(-45deg, rgba(188, 106, 27, 0.02) 25%, transparent 25%);
+  background-size: 40px 40px;
+}
+
+/* Enhanced hover effects */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(188, 106, 27, 0.2);
+}
+
+.hover-forest:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(102, 115, 44, 0.25);
+}
