@@ -22,8 +22,8 @@ import {
   BackwardIcon
 } from '@heroicons/react/24/outline';
 import Navigation from '@/components/Navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { User } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@supabase/ssr';
+import type { User } from '@supabase/supabase-js';
 
 // YouTube API types
 declare global {
@@ -46,7 +46,10 @@ const StudentPortal = () => {
   const [currentMaterialIndex, setCurrentMaterialIndex] = useState(0);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [materialUrls, setMaterialUrls] = useState<{[key: string]: string}>({});
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   useEffect(() => {
     const getUser = async () => {
