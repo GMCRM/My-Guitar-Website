@@ -3,7 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Remove static export for now - use regular deployment
   // output: 'export',
-  trailingSlash: true,
+  // Remove trailingSlash for Vercel compatibility
+  // trailingSlash: true,
   images: {
     unoptimized: true
   },
