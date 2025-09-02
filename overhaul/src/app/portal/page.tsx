@@ -1013,7 +1013,7 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                                 <h3 className={`font-semibold ${
                                   assignment.completed ? 'text-green-800' : 'text-gray-800'
                                 }`}>
-                                  Day {assignment.day_order}: {assignment.title}
+                                  {assignment.day ? assignment.day.charAt(0).toUpperCase() + assignment.day.slice(1) : `Day ${assignment.day_order}`}: {assignment.title}
                                 </h3>
                                 <p className={`text-sm whitespace-pre-wrap ${
                                   assignment.completed ? 'text-green-600' : 'text-gray-600'
