@@ -1903,43 +1903,45 @@ const AdminDashboardContent = () => {
                       {students.map((student) => (
                         <div
                           key={student.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                          className="p-3 bg-gray-50 rounded-lg border"
                         >
-                          <div className="flex-1">
-                            <h4 className="text-gray-800 font-medium">{student.email}</h4>
-                            <div className="text-sm text-gray-600">
-                              {student.user_metadata?.first_name && student.user_metadata?.last_name ? (
-                                <span>{student.user_metadata.first_name} {student.user_metadata.last_name}</span>
-                              ) : (
-                                <span className="text-gray-400 italic">No name provided</span>
-                              )}
-                              <span className="mx-2">•</span>
-                              <span>Joined: {new Date(student.created_at).toLocaleDateString()}</span>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div className="flex-1">
+                              <h4 className="text-gray-800 font-medium">{student.email}</h4>
+                              <div className="text-sm text-gray-600">
+                                {student.user_metadata?.first_name && student.user_metadata?.last_name ? (
+                                  <span>{student.user_metadata.first_name} {student.user_metadata.last_name}</span>
+                                ) : (
+                                  <span className="text-gray-400 italic">No name provided</span>
+                                )}
+                                <span className="mx-2">•</span>
+                                <span>Joined: {new Date(student.created_at).toLocaleDateString()}</span>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => setSelectedStudent(student.id)}
-                              className={`px-3 py-1 rounded text-sm font-medium ${
-                                selectedStudent === student.id
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                              }`}
-                            >
-                              {selectedStudent === student.id ? 'Selected' : 'Manage'}
-                            </button>
-                            <button
-                              onClick={() => startEditStudent(student)}
-                              className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
-                            >
-                              <PencilIcon className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => deleteStudent(student)}
-                              className="p-2 text-red-600 hover:text-red-800 transition-colors"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center justify-between sm:justify-end gap-2">
+                              <button
+                                onClick={() => setSelectedStudent(student.id)}
+                                className={`px-3 py-1 rounded text-sm font-medium flex-1 sm:flex-none ${
+                                  selectedStudent === student.id
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                }`}
+                              >
+                                {selectedStudent === student.id ? 'Selected' : 'Manage'}
+                              </button>
+                              <button
+                                onClick={() => startEditStudent(student)}
+                                className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+                              >
+                                <PencilIcon className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteStudent(student)}
+                                className="p-2 text-red-600 hover:text-red-800 transition-colors"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
