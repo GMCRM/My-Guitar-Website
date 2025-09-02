@@ -222,20 +222,21 @@ const StudentPortal = () => {
     try {
       console.log('Loading student data for user ID:', userId);
       
-      // Load materials
-      const { data: materialsData, error: materialsError } = await supabase
-        .from('student_materials')
-        .select('*')
-        .eq('student_id', userId)
-        .order('created_at', { ascending: false });
-
-      console.log('Materials query result:', { materialsData, materialsError });
-
-      if (materialsError) {
-        console.error('Error loading materials:', materialsError);
+      // Load materials via student API
+      const materialsResponse = await fetch(`/api/student/materials?studentId=${userId}`);
+      
+      if (materialsResponse.ok) {
+        const materialsResult = await materialsResponse.json();
+        if (materialsResult.success) {
+          console.log('Setting materials:', materialsResult.data?.length || 0, 'items');
+          setMaterials(materialsResult.data || []);
+        } else {
+          console.error('Error loading materials:', materialsResult.error);
+          setMaterials([]);
+        }
       } else {
-        console.log('Setting materials:', materialsData?.length || 0, 'items');
-        setMaterials(materialsData || []);
+        console.error('Error loading materials:', materialsResponse.statusText);
+        setMaterials([]);
       }
 
       // Load assignments via student API
