@@ -1,7 +1,0 @@
-{
-  "buildCommand": "cd overhaul && npm run build",
-  "outputDirectory": "overhaul/.next",
-  "installCommand": "cd overhaul && npm install",
-  "devCommand": "cd overhaul && npm run dev",
-  "framework": "nextjs"
-}
