@@ -450,8 +450,8 @@ const VideoPlayer = ({ videos, currentIndex, onVideoChange }: any) => {
       </div>
       
       {/* Video Info */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex-1">
+      <div className="mb-6">
+        <div className="mb-4">
           <h3 className="text-xl font-bold text-white mb-2">
             {currentVideo.title}
           </h3>
@@ -462,7 +462,8 @@ const VideoPlayer = ({ videos, currentIndex, onVideoChange }: any) => {
           )}
         </div>
         
-        <div className="flex items-center space-x-4 ml-8">
+        {/* Video Controls - Centered on mobile, right-aligned on desktop */}
+        <div className="flex items-center justify-center space-x-4 sm:justify-end">
           <button
             onClick={() => {
               const newIndex = (currentIndex - 1 + videos.length) % videos.length;
