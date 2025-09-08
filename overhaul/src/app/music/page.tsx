@@ -580,21 +580,58 @@ export default function MusicPage() {
           if (playerVideos.length > 0) {
             setAllVideos(playerVideos);
           } else {
-            console.log('No valid videos found in localStorage, using defaults');
+            console.log('No valid videos found in localStorage, using defaults and saving them');
             setAllVideos(defaultVideos);
+            // Save default videos to localStorage so admin panel can see them
+            const defaultAdminVideos = defaultVideos.map(video => ({
+              id: video.id,
+              title: `Default Video ${video.id}`,
+              author: 'Grant Matai Cross',
+              thumbnail: `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
+              addedDate: new Date().toISOString()
+            }));
+            localStorage.setItem('musicVideos', JSON.stringify(defaultAdminVideos));
           }
         } else {
-          console.log('Invalid video data in localStorage, using defaults');
+          console.log('Invalid video data in localStorage, using defaults and saving them');
           setAllVideos(defaultVideos);
+          // Save default videos to localStorage so admin panel can see them
+          const defaultAdminVideos = defaultVideos.map(video => ({
+            id: video.id,
+            title: `Default Video ${video.id}`,
+            author: 'Grant Matai Cross',
+            thumbnail: `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
+            addedDate: new Date().toISOString()
+          }));
+          localStorage.setItem('musicVideos', JSON.stringify(defaultAdminVideos));
         }
       } catch (error) {
         console.error('Error loading admin videos:', error);
         // Clear corrupt localStorage data
         localStorage.removeItem('musicVideos');
         setAllVideos(defaultVideos);
+        // Save default videos to localStorage so admin panel can see them
+        const defaultAdminVideos = defaultVideos.map(video => ({
+          id: video.id,
+          title: `Default Video ${video.id}`,
+          author: 'Grant Matai Cross',
+          thumbnail: `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
+          addedDate: new Date().toISOString()
+        }));
+        localStorage.setItem('musicVideos', JSON.stringify(defaultAdminVideos));
       }
     } else {
+      console.log('No videos in localStorage, using defaults and saving them');
       setAllVideos(defaultVideos);
+      // Save default videos to localStorage so admin panel can see them
+      const defaultAdminVideos = defaultVideos.map(video => ({
+        id: video.id,
+        title: `Default Video ${video.id}`,
+        author: 'Grant Matai Cross',
+        thumbnail: `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
+        addedDate: new Date().toISOString()
+      }));
+      localStorage.setItem('musicVideos', JSON.stringify(defaultAdminVideos));
     }
   }, []);
   return (

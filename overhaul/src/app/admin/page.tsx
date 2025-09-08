@@ -214,10 +214,35 @@ const AdminDashboardContent = () => {
   };
 
   const loadVideoList = () => {
-    // Load from localStorage for now - in production this could be in Supabase
-    const savedVideos = localStorage.getItem('musicVideos');
-    if (savedVideos) {
-      setVideoList(JSON.parse(savedVideos));
+    try {
+      // Ensure we're in the browser environment
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        const savedVideos = localStorage.getItem('musicVideos');
+        
+        if (savedVideos) {
+          try {
+            const parsedVideos = JSON.parse(savedVideos);
+            
+            // Validate that it's an array
+            if (Array.isArray(parsedVideos)) {
+              setVideoList(parsedVideos);
+            } else {
+              console.error('Invalid video data format:', parsedVideos);
+              setVideoList([]);
+            }
+          } catch (parseError) {
+            console.error('Error parsing videos from localStorage:', parseError);
+            setVideoList([]);
+          }
+        } else {
+          setVideoList([]);
+        }
+      } else {
+        setVideoList([]);
+      }
+    } catch (error) {
+      console.error('Error in loadVideoList:', error);
+      setVideoList([]);
     }
   };
 
@@ -1546,7 +1571,9 @@ const AdminDashboardContent = () => {
 
                 {/* Add Video Form */}
                 <div className="mb-6 p-4 rounded-lg" style={{backgroundColor: 'rgba(255,255,255,0.9)'}}>
-                  <h3 className="text-gray-800 font-medium mb-4">Add New YouTube Video</h3>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-gray-800 font-medium">Add New YouTube Video</h3>
+                  </div>
                   <div className="flex gap-3">
                     <input
                       type="text"
