@@ -567,35 +567,33 @@ export default function MusicPage() {
   useEffect(() => {
     // Load videos from admin panel (localStorage) or use defaults
     const savedVideos = localStorage.getItem('musicVideos');
-    if (savedVideos) {
+    if (savedVideos !== null) {
+      // localStorage exists (could be empty array or have videos)
       try {
         const adminVideos = JSON.parse(savedVideos);
-        // Validate that adminVideos is an array and has valid video objects
-        if (Array.isArray(adminVideos) && adminVideos.length > 0) {
-          // Convert admin video format to player format and filter out invalid entries
-          const playerVideos = adminVideos
-            .map((video: any) => ({ id: video.id }))
-            .filter(video => video.id && typeof video.id === 'string');
-          
-          if (playerVideos.length > 0) {
-            setAllVideos(playerVideos);
+        // Validate that adminVideos is an array
+        if (Array.isArray(adminVideos)) {
+          if (adminVideos.length > 0) {
+            // Convert admin video format to player format and filter out invalid entries
+            const playerVideos = adminVideos
+              .map((video: any) => ({ id: video.id }))
+              .filter(video => video.id && typeof video.id === 'string');
+            
+            if (playerVideos.length > 0) {
+              setAllVideos(playerVideos);
+            } else {
+              // Admin videos exist but are invalid, clear them and show empty
+              localStorage.setItem('musicVideos', JSON.stringify([]));
+              setAllVideos([]);
+            }
           } else {
-            console.log('No valid videos found in localStorage, using defaults and saving them');
-            setAllVideos(defaultVideos);
-            // Save default videos to localStorage so admin panel can see them
-            const defaultAdminVideos = defaultVideos.map(video => ({
-              id: video.id,
-              title: `Default Video ${video.id}`,
-              author: 'Grant Matai Cross',
-              thumbnail: `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
-              addedDate: new Date().toISOString()
-            }));
-            localStorage.setItem('musicVideos', JSON.stringify(defaultAdminVideos));
+            // Admin has explicitly cleared all videos (empty array)
+            setAllVideos([]);
           }
         } else {
-          console.log('Invalid video data in localStorage, using defaults and saving them');
+          console.log('Invalid video data format in localStorage, clearing and using defaults');
+          // Invalid format, reset to defaults
           setAllVideos(defaultVideos);
-          // Save default videos to localStorage so admin panel can see them
           const defaultAdminVideos = defaultVideos.map(video => ({
             id: video.id,
             title: `Default Video ${video.id}`,
@@ -607,10 +605,9 @@ export default function MusicPage() {
         }
       } catch (error) {
         console.error('Error loading admin videos:', error);
-        // Clear corrupt localStorage data
+        // Clear corrupt localStorage data and use defaults
         localStorage.removeItem('musicVideos');
         setAllVideos(defaultVideos);
-        // Save default videos to localStorage so admin panel can see them
         const defaultAdminVideos = defaultVideos.map(video => ({
           id: video.id,
           title: `Default Video ${video.id}`,
@@ -621,9 +618,9 @@ export default function MusicPage() {
         localStorage.setItem('musicVideos', JSON.stringify(defaultAdminVideos));
       }
     } else {
+      // No localStorage data at all (first visit) - use defaults and save them
       console.log('No videos in localStorage, using defaults and saving them');
       setAllVideos(defaultVideos);
-      // Save default videos to localStorage so admin panel can see them
       const defaultAdminVideos = defaultVideos.map(video => ({
         id: video.id,
         title: `Default Video ${video.id}`,
@@ -720,7 +717,31 @@ export default function MusicPage() {
             </p>
           </div>
           
-          <MusicPlayer videos={allVideos} />
+          {allVideos.length > 0 ? (
+            <MusicPlayer videos={allVideos} />
+          ) : (
+            <div className="text-center py-16">
+              <div className="mx-auto max-w-lg">
+                <MusicalNoteIcon className="mx-auto h-16 w-16 text-white opacity-60" />
+                <h3 className="mt-6 text-xl font-semibold text-white">No Music Videos Available</h3>
+                <p className="mt-2 text-white opacity-80">
+                  Check back soon for new acoustic guitar performances, or visit my YouTube channel for more content.
+                </p>
+                <div className="mt-8">
+                  <a
+                    href="https://www.youtube.com/@grantmatai"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-6 py-3 rounded-lg font-medium text-white transition-all hover-lift"
+                    style={{backgroundColor: '#BC6A1B'}}
+                  >
+                    <ArrowTopRightOnSquareIcon className="h-5 w-5 mr-2" />
+                    Visit YouTube Channel
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
