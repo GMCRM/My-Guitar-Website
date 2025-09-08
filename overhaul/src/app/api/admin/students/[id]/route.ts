@@ -19,22 +19,30 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { email, firstName, lastName } = await request.json();
+    const { email, firstName, lastName, password } = await request.json();
     const studentId = params.id;
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
+    // Prepare update data
+    const updateData: any = {
+      email,
+      user_metadata: {
+        first_name: firstName || '',
+        last_name: lastName || ''
+      }
+    };
+
+    // Add password to update if provided
+    if (password && password.trim() !== '') {
+      updateData.password = password;
+    }
+
     const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
       studentId,
-      {
-        email,
-        user_metadata: {
-          first_name: firstName || '',
-          last_name: lastName || ''
-        }
-      }
+      updateData
     );
 
     if (error) {
