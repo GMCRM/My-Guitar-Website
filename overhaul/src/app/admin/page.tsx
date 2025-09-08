@@ -20,7 +20,9 @@ import {
   AcademicCapIcon,
   UserGroupIcon,
   DocumentArrowUpIcon,
-  CheckIcon
+  CheckIcon,
+  EyeIcon,
+  EyeSlashIcon
 } from '@heroicons/react/24/outline';
 import AdminAuth from '@/components/admin/AdminAuth';
 import Navigation from '@/components/Navigation';
@@ -109,6 +111,7 @@ const AdminDashboardContent = () => {
     lastName: '',
     password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   // Edit Post State
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
@@ -332,6 +335,7 @@ const AdminDashboardContent = () => {
       lastName: '',
       password: ''
     });
+    setShowPassword(false);
   };
 
   const updateStudent = async () => {
@@ -1488,13 +1492,26 @@ const AdminDashboardContent = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           New Password
                         </label>
-                        <input
-                          type="password"
-                          value={editStudentForm.password}
-                          onChange={(e) => setEditStudentForm({...editStudentForm, password: e.target.value})}
-                          placeholder="Leave blank to keep current password"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                        <div className="relative">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            value={editStudentForm.password}
+                            onChange={(e) => setEditStudentForm({...editStudentForm, password: e.target.value})}
+                            placeholder="Leave blank to keep current password"
+                            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                          >
+                            {showPassword ? (
+                              <EyeSlashIcon className="h-5 w-5" />
+                            ) : (
+                              <EyeIcon className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                         <p className="text-xs text-gray-500 mt-1">
                           Leave blank to keep the current password unchanged
                         </p>
