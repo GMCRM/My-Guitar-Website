@@ -819,7 +819,7 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                     }`}
                   >
                     <CalendarDaysIcon className="h-5 w-5 inline mr-2" />
-                    Weekly Schedule
+                    Practice Assignments
                   </button>
                 </div>
               </motion.div>
@@ -972,14 +972,14 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                 >
                   <div className="flex items-center mb-6">
                     <CalendarDaysIcon className="h-8 w-8 text-green-700 mr-3" />
-                    <h2 className="text-2xl font-bold text-gray-800">Weekly Schedule</h2>
+                    <h2 className="text-2xl font-bold text-gray-800">Practice Assignments</h2>
                   </div>
 
                   {assignments.length === 0 ? (
                     <div className="text-center py-12">
                       <CalendarDaysIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600 text-lg">No assignments scheduled yet.</p>
-                      <p className="text-gray-500">Your weekly practice schedule will appear here.</p>
+                      <p className="text-gray-500">Your practice assignments will appear here.</p>
                     </div>
                   ) : (
                     <div className="grid gap-4">
@@ -1013,7 +1013,7 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                                 <h3 className={`font-semibold ${
                                   assignment.completed ? 'text-green-800' : 'text-gray-800'
                                 }`}>
-                                  {assignment.day ? assignment.day.charAt(0).toUpperCase() + assignment.day.slice(1) : `Day ${assignment.day_order}`}: {assignment.title}
+                                  {assignment.title}
                                 </h3>
                                 <p className={`text-sm whitespace-pre-wrap ${
                                   assignment.completed ? 'text-green-600' : 'text-gray-600'

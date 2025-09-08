@@ -2108,26 +2108,13 @@ const AdminDashboardContent = () => {
                             </p>
                           </div>
                         )}
-                        <div className="grid grid-cols-2 gap-2 mb-2">
-                          <select
-                            value={newAssignment.day}
-                            onChange={(e) => setNewAssignment({...newAssignment, day: e.target.value})}
-                            className="p-2 border border-gray-300 rounded text-sm"
-                          >
-                            <option value="monday">Monday</option>
-                            <option value="tuesday">Tuesday</option>
-                            <option value="wednesday">Wednesday</option>
-                            <option value="thursday">Thursday</option>
-                            <option value="friday">Friday</option>
-                            <option value="saturday">Saturday</option>
-                            <option value="sunday">Sunday</option>
-                          </select>
+                        <div className="mb-2">
                           <input
                             type="text"
                             placeholder="Assignment title"
                             value={newAssignment.title}
                             onChange={(e) => setNewAssignment({...newAssignment, title: e.target.value})}
-                            className="p-2 border border-gray-300 rounded text-sm"
+                            className="w-full p-2 border border-gray-300 rounded text-sm"
                           />
                         </div>
                         <textarea
@@ -2169,45 +2156,35 @@ const AdminDashboardContent = () => {
                         {studentAssignments.length === 0 ? (
                           <p className="text-gray-500 text-sm">No assignments created yet.</p>
                         ) : (
-                          ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
-                            const dayAssignments = studentAssignments.filter(a => a.day === day);
-                            if (dayAssignments.length === 0) return null;
-                            
-                            return (
-                              <div key={day} className="mb-3">
-                                <h4 className="text-sm font-medium text-gray-700 capitalize mb-1">{day}</h4>
-                                {dayAssignments.map((assignment) => (
-                                  <div
-                                    key={assignment.id}
-                                    className="flex items-start justify-between p-2 bg-gray-50 rounded mb-1"
-                                  >
-                                    <div className="flex-1">
-                                      <p className="text-sm font-medium text-gray-800">{assignment.title}</p>
-                                      {assignment.description && (
-                                        <p className="text-xs text-gray-600 whitespace-pre-wrap">{assignment.description}</p>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        onClick={() => editAssignment(assignment)}
-                                        className="text-blue-600 hover:text-blue-800 p-1"
-                                        title="Edit Assignment"
-                                      >
-                                        <PencilIcon className="h-4 w-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => deleteAssignment(assignment.id)}
-                                        className="text-red-600 hover:text-red-800 p-1"
-                                        title="Delete Assignment"
-                                      >
-                                        <XMarkIcon className="h-4 w-4" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
+                          studentAssignments.map((assignment) => (
+                            <div
+                              key={assignment.id}
+                              className="flex items-start justify-between p-2 bg-gray-50 rounded mb-1"
+                            >
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-800">{assignment.title}</p>
+                                {assignment.description && (
+                                  <p className="text-xs text-gray-600 whitespace-pre-wrap">{assignment.description}</p>
+                                )}
                               </div>
-                            );
-                          })
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => editAssignment(assignment)}
+                                  className="text-blue-600 hover:text-blue-800 p-1"
+                                  title="Edit Assignment"
+                                >
+                                  <PencilIcon className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => deleteAssignment(assignment.id)}
+                                  className="text-red-600 hover:text-red-800 p-1"
+                                  title="Delete Assignment"
+                                >
+                                  <XMarkIcon className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))
                         )}
                       </div>
                     </div>
