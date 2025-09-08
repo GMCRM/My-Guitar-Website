@@ -129,8 +129,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For now, let's just send email notification without database storage
-    // We'll add database functionality once the table is created
+    // Send email notification
     const emailResult = await sendEmailNotification({
       name: name.trim(),
       email: email?.trim() || null,
@@ -141,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     console.log('Email notification result:', emailResult);
 
-    // Try to save to database, but don't fail if it doesn't work
+    // Save to database
     try {
       const cookieStore = await cookies();
       const supabase = createServerClient(
@@ -182,12 +181,16 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error('Database save failed (this is OK for now):', error.message);
+        console.error('Database save failed:', error.message);
+        // Don't fail the entire request if email was sent successfully
+        // but log the error for debugging
+        console.error('Full database error:', error);
       } else {
         console.log('Message saved to database with ID:', data.id);
       }
     } catch (dbError) {
-      console.error('Database connection failed (this is OK for now):', dbError);
+      console.error('Database connection failed:', dbError);
+      // Don't fail the entire request, but log for debugging
     }
 
     return NextResponse.json(
