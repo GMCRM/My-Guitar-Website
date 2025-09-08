@@ -8,7 +8,6 @@ import {
   PlusIcon,
   PencilIcon,
   TrashIcon,
-  EyeIcon,
   CalendarDaysIcon,
   TagIcon,
   MusicalNoteIcon,
