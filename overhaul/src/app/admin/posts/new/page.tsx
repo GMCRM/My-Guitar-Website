@@ -46,31 +46,56 @@ export default function NewBlogPost() {
     }
   };
 
-  const uploadImage = async (): Promise<string | null> => {
+    const uploadImage = async (): Promise<string | null> => {
     if (!selectedFile) return null;
 
     setIsUploading(true);
     try {
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `blog-images/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('blog-images')
-        .upload(filePath, selectedFile);
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
+      // Convert HEIC to JPG if needed
+      let fileToUpload = selectedFile;
+      if (selectedFile.type === 'image/heic' || selectedFile.name.toLowerCase().endsWith('.heic')) {
+        // For HEIC files, we'll need to handle conversion or ask user to convert
+        alert('Please convert HEIC files to JPG format before uploading.');
         return null;
       }
 
-      const { data } = supabase.storage
+      const fileName = `blog-${Date.now()}-${selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      
+      console.log('Uploading file:', fileName, 'Size:', selectedFile.size, 'Type:', selectedFile.type);
+      
+      const { data, error } = await supabase.storage
         .from('blog-images')
-        .getPublicUrl(filePath);
+        .upload(fileName, fileToUpload);
 
-      return data.publicUrl;
+      if (error) {
+        console.error('Storage upload error:', error);
+        let errorMessage = 'Error uploading image';
+        
+        if (error.message?.includes('bucket') || error.message?.includes('not found')) {
+          errorMessage = 'Blog images storage bucket not found. Please set up the storage bucket first.';
+        } else if (error.message?.includes('policy')) {
+          errorMessage = 'Permission denied. Admin access required for image uploads.';
+        } else if (error.message?.includes('size')) {
+          errorMessage = 'Image file is too large. Please use an image under 10MB.';
+        } else if (error.message?.includes('type')) {
+          errorMessage = 'Invalid file type. Please use JPG, PNG, GIF, or WebP images only.';
+        } else {
+          errorMessage = `Upload failed: ${error.message}`;
+        }
+        
+        alert(errorMessage);
+        return null;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('blog-images')
+        .getPublicUrl(fileName);
+
+      console.log('Image uploaded successfully:', publicUrl);
+      return publicUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
+      alert('Error uploading image: ' + (error as Error).message);
       return null;
     } finally {
       setIsUploading(false);
@@ -85,14 +110,22 @@ export default function NewBlogPost() {
       // Upload image first if one is selected
       let imageUrl = postData.image_url || '';
       if (selectedFile) {
+        console.log('Starting image upload...');
         const uploadedUrl = await uploadImage();
         if (!uploadedUrl) {
-          alert('Error uploading image. Please try again.');
+          console.log('Image upload failed, aborting post creation');
           setIsLoading(false);
           return;
         }
         imageUrl = uploadedUrl;
+        console.log('Image upload completed:', imageUrl);
       }
+
+      console.log('Creating blog post with data:', {
+        title: postData.title,
+        hasImage: !!imageUrl,
+        published: postData.published
+      });
 
       const { data, error } = await supabase
         .from('blog_posts')
@@ -101,7 +134,7 @@ export default function NewBlogPost() {
             title: postData.title,
             content: postData.content,
             excerpt: postData.excerpt,
-            image_url: imageUrl,
+            image_url: imageUrl || null,
             featured: postData.featured,
             published: postData.published,
             tags: postData.tags,
@@ -113,14 +146,25 @@ export default function NewBlogPost() {
 
       if (error) {
         console.error('Error creating post:', error);
-        alert('Error creating post. Please try again.');
+        let errorMessage = 'Error creating post. Please try again.';
+        
+        if (error.message?.includes('blog_posts')) {
+          errorMessage = 'Blog posts table not found. Please set up the database first.';
+        } else if (error.message?.includes('image_url')) {
+          errorMessage = 'Database schema error. The image_url column may not exist.';
+        } else {
+          errorMessage = `Database error: ${error.message}`;
+        }
+        
+        alert(errorMessage);
       } else {
         console.log('Post created successfully:', data);
+        alert('Blog post created successfully!');
         router.push('/admin');
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error creating post. Please try again.');
+      alert('Error creating post: ' + (error as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -196,7 +240,7 @@ export default function NewBlogPost() {
               {/* Image Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Post Image <span className="text-red-500">*</span>
+                  Post Image (Optional)
                 </label>
                 <div className="mt-2">
                   {previewUrl ? (
@@ -234,7 +278,6 @@ export default function NewBlogPost() {
                               className="sr-only"
                               accept="image/*"
                               onChange={handleFileSelect}
-                              required
                             />
                           </label>
                           <p className="pl-1">or drag and drop</p>
