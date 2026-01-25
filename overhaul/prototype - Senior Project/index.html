@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Guitar Tuner Prototype</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Guitar Tuner Prototype</h1>
+
+      <div class="beep">
+        <button
+          id="beepBtn"
+          title="Play reference tone for selected string"
+          disabled
+        >
+          Reference Beep
+        </button>
+      </div>
+
+      <div class="string-select" aria-label="Select target string">
+        <button class="string-btn active" data-string="AUTO">Auto</button>
+        <button class="string-btn" data-string="E2">E2</button>
+        <button class="string-btn" data-string="A2">A2</button>
+        <button class="string-btn" data-string="D3">D3</button>
+        <button class="string-btn" data-string="G3">G3</button>
+        <button class="string-btn" data-string="B3">B3</button>
+        <button class="string-btn" data-string="E4">E4</button>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn">Start Microphone</button>
+        <button id="stopBtn" disabled>Stop</button>
+        <div id="status" class="status">Idle</div>
+      </div>
+
+      <section class="meter-card">
+        <div class="meter">
+          <div class="meter-scale">
+            <span>-50</span>
+            <span>-25</span>
+            <span>0</span>
+            <span>+25</span>
+            <span>+50</span>
+          </div>
+          <div class="centerline"></div>
+          <div id="needle" class="needle"></div>
+        </div>
+      </section>
+
+      <section class="display">
+        <div class="string">Target: <span id="stringName">Auto</span></div>
+        <div class="freq">Freq: <span id="frequency">—</span> Hz</div>
+        <div class="note">
+          Note: <span id="note">—</span> (<span id="cents">0</span> cents)
+        </div>
+      </section>
+
+      <!-- <p class="hint">
+        Tip: This needs microphone access and must be served from localhost or
+        https.
+      </p> -->
+    </main>
+
+    <script src="tuner.js"></script>
+  </body>
+</html>
