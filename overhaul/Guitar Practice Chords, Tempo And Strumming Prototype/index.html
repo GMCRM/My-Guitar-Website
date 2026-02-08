@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guitar Play-Along Practice Prototype</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>Guitar Play-Along Practice</h1>
+      <p>Prototype — select a track, key, and strumming pattern to practice.</p>
+    </header>
+
+    <main class="app-layout">
+      <section class="selection-panel" aria-label="Selection Area">
+        <div class="panel-group">
+          <h2>Backing Track</h2>
+          <ul class="option-list" id="track-list">
+            <!-- Tracks rendered by JS -->
+          </ul>
+        </div>
+
+        <div class="panel-group">
+          <h2>Key Selection</h2>
+          <div class="pill-grid" id="key-list">
+            <!-- Keys rendered by JS -->
+          </div>
+        </div>
+
+        <div class="panel-group">
+          <h2>Strumming Pattern</h2>
+          <div class="pattern-grid" id="pattern-list">
+            <!-- Patterns rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <section class="practice-panel" aria-label="Practice Display">
+        <div class="practice-card">
+          <h2>Practice Display</h2>
+          <div class="practice-row">
+            <span class="label">Selected Track:</span>
+            <span class="value" id="selected-track">None</span>
+          </div>
+          <div class="practice-row">
+            <span class="label">Selected Key:</span>
+            <span class="value" id="selected-key">None</span>
+          </div>
+          <div class="practice-row">
+            <span class="label">Chord Progression (I–IV–V):</span>
+            <span class="value" id="selected-chords">—</span>
+          </div>
+          <div class="practice-row">
+            <span class="label">Strumming Pattern:</span>
+            <span class="value" id="selected-pattern">—</span>
+          </div>
+
+          <div class="audio-controls">
+            <audio id="audio-player" controls></audio>
+            <p class="hint">
+              Audio is a placeholder loop for prototype interaction.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
