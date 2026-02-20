@@ -919,50 +919,50 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                 transition={{ delay: 0.2 }}
                 className="mb-8"
               >
-                <div className="flex space-x-2 bg-white bg-opacity-20 p-2 rounded-lg">
+                <div className="flex flex-wrap gap-2 bg-white bg-opacity-20 p-2 rounded-lg">
                   <button
                     onClick={() => setActiveTab('materials')}
-                    className={`flex-1 px-6 py-3 rounded-md font-medium transition-all duration-200 border-2 ${
+                    className={`flex-1 min-w-[140px] px-3 sm:px-6 py-2 sm:py-3 rounded-md font-medium transition-all duration-200 border-2 text-sm sm:text-base ${
                       activeTab === 'materials'
                         ? 'bg-green-600 text-white shadow-md border-green-600'
                         : 'text-green-800 bg-white hover:bg-gray-100 border-white'
                     }`}
                   >
-                    <DocumentTextIcon className="h-5 w-5 inline mr-2" />
-                    Your Materials
+                    <DocumentTextIcon className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Your </span>Materials
                   </button>
                   <button
                     onClick={() => setActiveTab('videos')}
-                    className={`flex-1 px-6 py-3 rounded-md font-medium transition-all duration-200 border-2 ${
+                    className={`flex-1 min-w-[100px] px-3 sm:px-6 py-2 sm:py-3 rounded-md font-medium transition-all duration-200 border-2 text-sm sm:text-base ${
                       activeTab === 'videos'
                         ? 'bg-green-600 text-white shadow-md border-green-600'
                         : 'text-green-800 bg-white hover:bg-gray-100 border-white'
                     }`}
                   >
-                    <PlayIcon className="h-5 w-5 inline mr-2" />
+                    <PlayIcon className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1 sm:mr-2" />
                     Videos
                   </button>
                   <button
                     onClick={() => setActiveTab('schedule')}
-                    className={`flex-1 px-6 py-3 rounded-md font-medium transition-all duration-200 border-2 ${
+                    className={`flex-1 min-w-[120px] px-3 sm:px-6 py-2 sm:py-3 rounded-md font-medium transition-all duration-200 border-2 text-sm sm:text-base ${
                       activeTab === 'schedule'
                         ? 'bg-green-600 text-white shadow-md border-green-600'
                         : 'text-green-800 bg-white hover:bg-gray-100 border-white'
                     }`}
                   >
-                    <CalendarDaysIcon className="h-5 w-5 inline mr-2" />
-                    Practice Assignments
+                    <CalendarDaysIcon className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1 sm:mr-2" />
+                    <span className="hidden md:inline">Practice </span>Assignments
                   </button>
                   <button
                     onClick={() => setActiveTab('habits')}
-                    className={`flex-1 px-6 py-3 rounded-md font-medium transition-all duration-200 border-2 ${
+                    className={`flex-1 min-w-[120px] px-3 sm:px-6 py-2 sm:py-3 rounded-md font-medium transition-all duration-200 border-2 text-sm sm:text-base ${
                       activeTab === 'habits'
                         ? 'bg-green-600 text-white shadow-md border-green-600'
                         : 'text-green-800 bg-white hover:bg-gray-100 border-white'
                     }`}
                   >
-                    <FireIcon className="h-5 w-5 inline mr-2" />
-                    Habit Tracker
+                    <FireIcon className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Habit </span>Tracker
                   </button>
                 </div>
               </motion.div>
