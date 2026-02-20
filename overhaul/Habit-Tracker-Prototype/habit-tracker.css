@@ -28,7 +28,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 32px 16px;
-  gap: 18px;
+  gap: 24px;
 }
 
 .page-title {
@@ -152,4 +152,95 @@ body {
   border-radius: 50%;
   background: var(--light-green);
   opacity: 0.5;
+}
+
+/* ========================================
+   Content Wrapper & Layout
+   ======================================== */
+
+.content-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 1200px;
+  align-items: center;
+}
+
+/* ========================================
+   Leaderboards
+   ======================================== */
+
+.leaderboards-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 520px;
+}
+
+.leaderboard {
+  background: var(--medium-green);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(96, 39, 24, 0.1);
+}
+
+.leaderboard-title {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--cream-50);
+}
+
+.leaderboard-subtitle {
+  margin: 0 0 12px 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--forest-100);
+  opacity: 0.9;
+}
+
+.leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--cream-100);
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: transform 0.15s ease;
+}
+
+.leaderboard-item:hover {
+  transform: translateX(2px);
+}
+
+.leaderboard-item .rank {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--light-brown);
+  min-width: 24px;
+}
+
+.leaderboard-item .student-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--dark-brown);
+}
+
+.leaderboard-item .stat {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--medium-green);
+  white-space: nowrap;
 }

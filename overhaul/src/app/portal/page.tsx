@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { 
+import {
   DocumentTextIcon,
   DocumentArrowDownIcon,
   CheckIcon,
@@ -19,7 +19,8 @@ import {
   ShareIcon,
   ArrowTopRightOnSquareIcon,
   ForwardIcon,
-  BackwardIcon
+  BackwardIcon,
+  FireIcon
 } from '@heroicons/react/24/outline';
 import Navigation from '@/components/Navigation';
 import { createBrowserClient } from '@supabase/ssr';
@@ -42,10 +43,14 @@ const StudentPortal = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [isAdminMode, setIsAdminMode] = useState(false);
-  const [activeTab, setActiveTab] = useState<'materials' | 'videos' | 'schedule'>('materials');
+  const [activeTab, setActiveTab] = useState<'materials' | 'videos' | 'schedule' | 'habits'>('materials');
   const [currentMaterialIndex, setCurrentMaterialIndex] = useState(0);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [materialUrls, setMaterialUrls] = useState<{[key: string]: string}>({});
+  const [habitDates, setHabitDates] = useState<Set<string>>(new Set());
+  const [habitViewYear, setHabitViewYear] = useState(new Date().getFullYear());
+  const [habitViewMonth, setHabitViewMonth] = useState(new Date().getMonth());
+  const [habitLoading, setHabitLoading] = useState(false);
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -273,6 +278,133 @@ const StudentPortal = () => {
     } catch (error) {
       console.error('Error loading student data:', error);
     }
+  };
+
+  // Habit tracker data fetching
+  const loadHabits = async (studentId: string, year: number, month: number) => {
+    try {
+      setHabitLoading(true);
+      const response = await fetch(`/api/student/habits?studentId=${studentId}&year=${year}&month=${month + 1}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          const dates = new Set<string>((result.data || []).map((h: any) => h.date));
+          setHabitDates(dates);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading habits:', error);
+    } finally {
+      setHabitLoading(false);
+    }
+  };
+
+  const loadHabitsViaAPI = async (studentId: string, year: number, month: number) => {
+    if (!user || !isAdminMode) return;
+    try {
+      setHabitLoading(true);
+      const response = await fetch(`/api/admin/habits?studentId=${studentId}&userEmail=${encodeURIComponent(user.email)}&year=${year}&month=${month + 1}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          const dates = new Set<string>((result.data || []).map((h: any) => h.date));
+          setHabitDates(dates);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading habits via API:', error);
+    } finally {
+      setHabitLoading(false);
+    }
+  };
+
+  const toggleHabit = async (dateStr: string) => {
+    try {
+      if (isAdminMode && selectedStudentId) {
+        const response = await fetch(`/api/admin/habits?userEmail=${encodeURIComponent(user?.email || '')}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studentId: selectedStudentId, date: dateStr })
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            setHabitDates(prev => {
+              const next = new Set(prev);
+              if (result.completed) {
+                next.add(dateStr);
+              } else {
+                next.delete(dateStr);
+              }
+              return next;
+            });
+          }
+        }
+      } else if (user) {
+        const response = await fetch(`/api/student/habits?studentId=${user.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: dateStr })
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            setHabitDates(prev => {
+              const next = new Set(prev);
+              if (result.completed) {
+                next.add(dateStr);
+              } else {
+                next.delete(dateStr);
+              }
+              return next;
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling habit:', error);
+    }
+  };
+
+  // Reload habits when habit calendar month changes
+  useEffect(() => {
+    const studentId = isAdminMode ? selectedStudentId : user?.id;
+    if (!studentId) return;
+    if (isAdminMode) {
+      loadHabitsViaAPI(studentId, habitViewYear, habitViewMonth);
+    } else {
+      loadHabits(studentId, habitViewYear, habitViewMonth);
+    }
+  }, [habitViewYear, habitViewMonth, isAdminMode, selectedStudentId, user?.id]);
+
+  // Habit calendar helpers
+  const habitPad2 = (v: number) => v.toString().padStart(2, '0');
+  const habitDateKey = (year: number, monthIndex: number, day: number) =>
+    `${year}-${habitPad2(monthIndex + 1)}-${habitPad2(day)}`;
+
+  const buildHabitMonthGrid = (year: number, monthIndex: number) => {
+    const firstOfMonth = new Date(year, monthIndex, 1);
+    const startDayIndex = firstOfMonth.getDay();
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    const grid: (number | null)[] = [];
+    for (let i = 0; i < startDayIndex; i++) grid.push(null);
+    for (let day = 1; day <= daysInMonth; day++) grid.push(day);
+    while (grid.length % 7 !== 0) grid.push(null);
+    return grid;
+  };
+
+  const habitPrevMonth = () => {
+    const d = new Date(habitViewYear, habitViewMonth - 1, 1);
+    setHabitViewYear(d.getFullYear());
+    setHabitViewMonth(d.getMonth());
+  };
+
+  const habitNextMonth = () => {
+    const now = new Date();
+    if (habitViewYear === now.getFullYear() && habitViewMonth === now.getMonth()) return;
+    const d = new Date(habitViewYear, habitViewMonth + 1, 1);
+    setHabitViewYear(d.getFullYear());
+    setHabitViewMonth(d.getMonth());
   };
 
   const downloadMaterial = async (material: any) => {
@@ -821,6 +953,17 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                     <CalendarDaysIcon className="h-5 w-5 inline mr-2" />
                     Practice Assignments
                   </button>
+                  <button
+                    onClick={() => setActiveTab('habits')}
+                    className={`flex-1 px-6 py-3 rounded-md font-medium transition-all duration-200 border-2 ${
+                      activeTab === 'habits'
+                        ? 'bg-green-600 text-white shadow-md border-green-600'
+                        : 'text-green-800 bg-white hover:bg-gray-100 border-white'
+                    }`}
+                  >
+                    <FireIcon className="h-5 w-5 inline mr-2" />
+                    Habit Tracker
+                  </button>
                 </div>
               </motion.div>
 
@@ -1027,6 +1170,109 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                       ))}
                     </div>
                   )}
+                </motion.div>
+              )}
+
+              {activeTab === 'habits' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-xl p-8"
+                >
+                  <div className="flex items-center mb-6">
+                    <FireIcon className="h-8 w-8 text-green-700 mr-3" />
+                    <h2 className="text-2xl font-bold text-gray-800">Practice Habit Tracker</h2>
+                  </div>
+
+                  {/* Calendar */}
+                  <div className="max-w-lg mx-auto">
+                    {/* Month Navigation */}
+                    <div className="flex items-center justify-between mb-4">
+                      <button
+                        type="button"
+                        onClick={habitPrevMonth}
+                        className="w-9 h-9 rounded-full flex items-center justify-center bg-green-600 text-white hover:bg-green-700 transition-colors"
+                      >
+                        <ChevronLeftIcon className="h-5 w-5" />
+                      </button>
+                      <h3 className="text-xl font-bold text-gray-800">
+                        {new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(new Date(habitViewYear, habitViewMonth, 1))}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={habitNextMonth}
+                        disabled={habitViewYear === new Date().getFullYear() && habitViewMonth === new Date().getMonth()}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+                          habitViewYear === new Date().getFullYear() && habitViewMonth === new Date().getMonth()
+                            ? 'bg-gray-300 text-gray-500 cursor-default'
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
+                      >
+                        <ChevronRightIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    {/* Weekday Labels */}
+                    <div className="grid grid-cols-7 gap-2 mb-2">
+                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+                        <div key={d} className="text-center text-sm font-semibold text-gray-500">{d}</div>
+                      ))}
+                    </div>
+
+                    {/* Calendar Grid */}
+                    {habitLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-7 gap-2">
+                        {buildHabitMonthGrid(habitViewYear, habitViewMonth).map((day, i) => {
+                          if (day === null) {
+                            return <div key={`empty-${i}`} className="h-14" />;
+                          }
+
+                          const key = habitDateKey(habitViewYear, habitViewMonth, day);
+                          const isCompleted = habitDates.has(key);
+                          const today = new Date();
+                          const isToday = habitViewYear === today.getFullYear() && habitViewMonth === today.getMonth() && day === today.getDate();
+
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => toggleHabit(key)}
+                              className={`relative h-14 rounded-xl border-2 font-semibold text-sm flex items-center justify-center transition-all hover:-translate-y-0.5 ${
+                                isToday
+                                  ? 'border-amber-500 shadow-md'
+                                  : 'border-gray-200'
+                              } ${
+                                isCompleted
+                                  ? 'bg-green-100 border-green-400'
+                                  : 'bg-white hover:border-green-300'
+                              }`}
+                            >
+                              <span className={`z-10 ${isCompleted ? 'text-green-800' : 'text-gray-700'}`}>{day}</span>
+                              {isCompleted && (
+                                <span className="absolute inset-2 rounded-full opacity-40" style={{backgroundColor: '#87AA6A'}} />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Monthly Stats */}
+                    <div className="mt-6 flex items-center justify-center space-x-6 text-sm text-gray-600">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-4 h-4 rounded-full inline-block" style={{backgroundColor: '#87AA6A', opacity: 0.6}} />
+                        <span>Practiced</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-green-700">{habitDates.size}</span> {habitDates.size === 1 ? 'day' : 'days'} this month
+                      </div>
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </>
