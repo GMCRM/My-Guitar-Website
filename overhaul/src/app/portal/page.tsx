@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   DocumentTextIcon,
@@ -20,7 +20,9 @@ import {
   ArrowTopRightOnSquareIcon,
   ForwardIcon,
   BackwardIcon,
-  FireIcon
+  FireIcon,
+  MicrophoneIcon,
+  StopIcon
 } from '@heroicons/react/24/outline';
 import Navigation from '@/components/Navigation';
 import { createBrowserClient } from '@supabase/ssr';
@@ -34,6 +36,16 @@ declare global {
   }
 }
 
+// Guitar Tuner constants
+const GUITAR_STRINGS = [
+  { name: "E2", freq: 82.41 },
+  { name: "A2", freq: 110.0 },
+  { name: "D3", freq: 146.83 },
+  { name: "G3", freq: 196.0 },
+  { name: "B3", freq: 246.94 },
+  { name: "E4", freq: 329.63 },
+];
+
 const StudentPortal = () => {
   const [materials, setMaterials] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
@@ -43,7 +55,15 @@ const StudentPortal = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [isAdminMode, setIsAdminMode] = useState(false);
-  const [activeTab, setActiveTab] = useState<'materials' | 'videos' | 'schedule' | 'habits'>('materials');
+  const [activeTab, setActiveTab] = useState<'materials' | 'videos' | 'schedule' | 'habits' | 'tuner'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('studentPortalActiveTab');
+      if (saved && ['materials', 'videos', 'schedule', 'habits', 'tuner'].includes(saved)) {
+        return saved as 'materials' | 'videos' | 'schedule' | 'habits' | 'tuner';
+      }
+    }
+    return 'materials';
+  });
   const [currentMaterialIndex, setCurrentMaterialIndex] = useState(0);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [materialUrls, setMaterialUrls] = useState<{[key: string]: string}>({});
@@ -51,10 +71,354 @@ const StudentPortal = () => {
   const [habitViewYear, setHabitViewYear] = useState(new Date().getFullYear());
   const [habitViewMonth, setHabitViewMonth] = useState(new Date().getMonth());
   const [habitLoading, setHabitLoading] = useState(false);
+
+  // Guitar Tuner state
+  const [tunerRunning, setTunerRunning] = useState(false);
+  const [tunerStatus, setTunerStatus] = useState('Click Start to begin tuning');
+  const [tunerSelectedTarget, setTunerSelectedTarget] = useState<string>('AUTO');
+  const [tunerFrequency, setTunerFrequency] = useState<number | null>(null);
+  const [tunerNote, setTunerNote] = useState<string>('—');
+  const [tunerCents, setTunerCents] = useState<number>(0);
+  const [tunerConfidence, setTunerConfidence] = useState<number>(0);
+  const [tunerIsInTune, setTunerIsInTune] = useState(false);
+  const [tunerIsSettling, setTunerIsSettling] = useState(false);
+  const [tunerSupported, setTunerSupported] = useState(true);
+  
+  // Guitar Tuner refs (for audio objects that shouldn't trigger re-renders)
+  const tunerAudioContextRef = useRef<AudioContext | null>(null);
+  const tunerAnalyserRef = useRef<AnalyserNode | null>(null);
+  const tunerMediaStreamRef = useRef<MediaStream | null>(null);
+  const tunerTimeDataRef = useRef<Float32Array | null>(null);
+  const tunerRafIdRef = useRef<number | null>(null);
+  const tunerRunningRef = useRef<boolean>(false);
+  const tunerSmoothedCentsRef = useRef<number>(0);
+  const tunerFreqHistoryRef = useRef<number[]>([]);
+  const tunerLastCentsRef = useRef<number>(0);
+  const tunerVelocityRef = useRef<number>(0);
+  const tunerConfidenceRef = useRef<number>(0);
+  const tunerBeepContextRef = useRef<AudioContext | null>(null);
+  const tunerMeterRef = useRef<HTMLDivElement | null>(null);
+
+  // Guitar Tuner helper functions
+  const getNearestString = useCallback((frequency: number) => {
+    let best = GUITAR_STRINGS[0];
+    let minDiff = Math.abs(frequency - best.freq);
+    for (let i = 1; i < GUITAR_STRINGS.length; i++) {
+      const diff = Math.abs(frequency - GUITAR_STRINGS[i].freq);
+      if (diff < minDiff) {
+        minDiff = diff;
+        best = GUITAR_STRINGS[i];
+      }
+    }
+    return best;
+  }, []);
+
+  const getTargetString = useCallback(() => {
+    if (tunerSelectedTarget === 'AUTO') return null;
+    return GUITAR_STRINGS.find((s) => s.name === tunerSelectedTarget) || null;
+  }, [tunerSelectedTarget]);
+
+  const frequencyToNoteName = useCallback((frequency: number) => {
+    if (!frequency || frequency <= 0) return '—';
+    const A4 = 440;
+    const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const midi = Math.round(12 * Math.log2(frequency / A4) + 69);
+    const note = NOTES[midi % 12];
+    const octave = Math.floor(midi / 12) - 1;
+    return `${note}${octave}`;
+  }, []);
+
+  const centsOff = useCallback((frequency: number, target: number) => {
+    if (!frequency || !target || frequency <= 0 || target <= 0) return 0;
+    return Math.round(1200 * Math.log2(frequency / target));
+  }, []);
+
+  const medianFilter = useCallback((value: number, history: number[], size = 5) => {
+    history.push(value);
+    if (history.length > size) history.shift();
+    const sorted = [...history].sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
+  }, []);
+
+  const correctOctave = useCallback((detected: number, target: number) => {
+    let corrected = detected;
+    while (corrected > target * 1.5) corrected /= 2;
+    while (corrected < target * 0.75) corrected *= 2;
+    return corrected;
+  }, []);
+
+  // Autocorrelation-based pitch detection
+  const autoCorrelate = useCallback((buf: Float32Array, sampleRate: number) => {
+    const SIZE = buf.length;
+    let rms = 0;
+    for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+    rms = Math.sqrt(rms / SIZE);
+    if (rms < 0.005) return -1;
+
+    const minPeriod = Math.floor(sampleRate / 500);
+    const maxPeriod = Math.floor(sampleRate / 75);
+
+    let r1 = 0, r2 = SIZE - 1;
+    const thresh = 0.15;
+    for (let i = 0; i < SIZE / 2; i++) {
+      if (Math.abs(buf[i]) < thresh) {
+        r1 = i;
+        break;
+      }
+    }
+    for (let i = 1; i < SIZE / 2; i++) {
+      if (Math.abs(buf[SIZE - i]) < thresh) {
+        r2 = SIZE - i;
+        break;
+      }
+    }
+
+    const trimmed = buf.slice(r1, r2);
+    const newSize = trimmed.length;
+    const autocorr = new Float32Array(newSize);
+
+    for (let lag = 0; lag < newSize; lag++) {
+      let sum = 0;
+      for (let i = 0; i < newSize - lag; i++) sum += trimmed[i] * trimmed[i + lag];
+      autocorr[lag] = sum;
+    }
+
+    const norm = autocorr[0];
+    if (norm === 0) return -1;
+    for (let i = 0; i < newSize; i++) autocorr[i] /= norm;
+
+    let peakIndex = -1;
+    let peakValue = 0;
+    const searchStart = Math.max(minPeriod, 1);
+    const searchEnd = Math.min(maxPeriod, newSize - 1);
+
+    for (let i = searchStart; i < searchEnd; i++) {
+      if (
+        autocorr[i] > 0.4 &&
+        autocorr[i] > autocorr[i - 1] &&
+        autocorr[i] >= autocorr[i + 1] &&
+        autocorr[i] > peakValue
+      ) {
+        peakValue = autocorr[i];
+        peakIndex = i;
+      }
+    }
+
+    if (peakIndex <= 0 || peakValue < 0.4) return -1;
+
+    const x0 = peakIndex - 1;
+    const x2 = peakIndex + 1;
+    const y0 = autocorr[x0];
+    const y1 = autocorr[peakIndex];
+    const y2 = autocorr[x2];
+    const denom = y0 - 2 * y1 + y2;
+    const shift = denom !== 0 ? (0.5 * (y0 - y2)) / denom : 0;
+    const refined = peakIndex + shift;
+
+    const freq = sampleRate / refined;
+    if (!isFinite(freq) || freq <= 0 || freq < 70 || freq > 500) return -1;
+    return freq;
+  }, []);
+
+  // Play reference beep
+  const playReferenceBeep = useCallback(() => {
+    const target = getTargetString();
+    if (!target) {
+      setTunerStatus('Select a string to play reference beep.');
+      return;
+    }
+
+    let ctx = tunerBeepContextRef.current;
+    if (!ctx || ctx.state === 'closed') {
+      ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      tunerBeepContextRef.current = ctx;
+    }
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(target.freq, ctx.currentTime);
+
+    gain.gain.setValueAtTime(0.0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.05);
+    gain.gain.linearRampToValueAtTime(0.0, ctx.currentTime + 1.0);
+
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 1.05);
+    setTunerStatus(`Reference beep: ${target.name}`);
+  }, [getTargetString]);
+
+  // Tuner update loop
+  const tunerUpdate = useCallback(() => {
+    if (!tunerRunningRef.current) return;
+
+    const analyser = tunerAnalyserRef.current;
+    const audioContext = tunerAudioContextRef.current;
+    const timeData = tunerTimeDataRef.current;
+
+    if (!analyser || !audioContext || !timeData) return;
+
+    analyser.getFloatTimeDomainData(timeData);
+    let freq = autoCorrelate(timeData, audioContext.sampleRate);
+
+    if (freq > 0) {
+      const target = getTargetString();
+      const base = target ? target : getNearestString(freq);
+
+      if (target) {
+        freq = correctOctave(freq, base.freq);
+      }
+
+      const filterSize = freq > 200 ? 4 : 7;
+      freq = medianFilter(freq, tunerFreqHistoryRef.current, filterSize);
+
+      const cents = centsOff(freq, base.freq);
+      const noteName = frequencyToNoteName(freq);
+
+      const baseDiff = Math.abs(cents - tunerSmoothedCentsRef.current);
+      const isHighFreq = freq > 200;
+
+      tunerVelocityRef.current = 0.7 * tunerVelocityRef.current + 0.3 * (cents - tunerLastCentsRef.current);
+      tunerLastCentsRef.current = cents;
+
+      const velocityFactor = Math.max(0.5, 1 - Math.abs(tunerVelocityRef.current) / 30);
+
+      let alpha: number;
+      if (target) {
+        alpha = isHighFreq
+          ? baseDiff > 15 ? 0.3 : 0.2
+          : baseDiff > 15 ? 0.25 : 0.15;
+        alpha *= velocityFactor;
+      } else {
+        alpha = (baseDiff > 10 ? 0.45 : 0.35) * velocityFactor;
+      }
+
+      tunerSmoothedCentsRef.current = tunerSmoothedCentsRef.current + alpha * (cents - tunerSmoothedCentsRef.current);
+      const smoothedCents = tunerSmoothedCentsRef.current;
+
+      const stability = 1 - Math.min(1, Math.abs(tunerVelocityRef.current) / 20);
+      tunerConfidenceRef.current = 0.8 * tunerConfidenceRef.current + 0.2 * stability;
+      const confidence = tunerConfidenceRef.current;
+
+      const good = Math.abs(smoothedCents) <= 5 && confidence > 0.6;
+      const settling = confidence < 0.5;
+
+      setTunerFrequency(freq);
+      setTunerNote(noteName);
+      setTunerCents(Math.round(smoothedCents));
+      setTunerConfidence(confidence);
+      setTunerIsInTune(good);
+      setTunerIsSettling(settling);
+
+      const statusMsg = good ? 'In tune!' : settling ? 'Settling…' : 'Tuning…';
+      setTunerStatus(statusMsg);
+    } else {
+      setTunerStatus('Listening… (no stable pitch)');
+      setTunerCents(0);
+      setTunerFrequency(null);
+      setTunerNote('—');
+      tunerSmoothedCentsRef.current = 0;
+    }
+
+    tunerRafIdRef.current = requestAnimationFrame(tunerUpdate);
+  }, [autoCorrelate, centsOff, correctOctave, frequencyToNoteName, getNearestString, getTargetString, medianFilter]);
+
+  // Start tuner
+  const startTuner = useCallback(async () => {
+    if (tunerRunningRef.current) return;
+
+    try {
+      setTunerStatus('Requesting microphone…');
+      
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+      });
+
+      tunerMediaStreamRef.current = stream;
+      
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      tunerAudioContextRef.current = audioContext;
+      
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 4096;
+      tunerAnalyserRef.current = analyser;
+      tunerTimeDataRef.current = new Float32Array(analyser.fftSize);
+      
+      source.connect(analyser);
+      
+      tunerRunningRef.current = true;
+      setTunerRunning(true);
+      setTunerStatus('Listening…');
+      
+      tunerUpdate();
+    } catch (err) {
+      console.error(err);
+      setTunerStatus('Microphone permission denied or unavailable.');
+    }
+  }, [tunerUpdate]);
+
+  // Stop tuner
+  const stopTuner = useCallback(() => {
+    tunerRunningRef.current = false;
+    setTunerRunning(false);
+
+    if (tunerRafIdRef.current) {
+      cancelAnimationFrame(tunerRafIdRef.current);
+      tunerRafIdRef.current = null;
+    }
+
+    if (tunerMediaStreamRef.current) {
+      for (const track of tunerMediaStreamRef.current.getTracks()) {
+        track.stop();
+      }
+      tunerMediaStreamRef.current = null;
+    }
+
+    if (tunerAudioContextRef.current) {
+      tunerAudioContextRef.current.close();
+      tunerAudioContextRef.current = null;
+    }
+
+    setTunerStatus('Stopped');
+    setTunerFrequency(null);
+    setTunerNote('—');
+    setTunerCents(0);
+    setTunerConfidence(0);
+    setTunerIsInTune(false);
+    setTunerIsSettling(false);
+    tunerSmoothedCentsRef.current = 0;
+    tunerFreqHistoryRef.current = [];
+    tunerLastCentsRef.current = 0;
+    tunerVelocityRef.current = 0;
+    tunerConfidenceRef.current = 0;
+  }, []);
+
+  // Handle string selection
+  const selectTunerString = useCallback((stringName: string) => {
+    setTunerSelectedTarget(stringName);
+    tunerSmoothedCentsRef.current = 0;
+    tunerFreqHistoryRef.current = [];
+    tunerLastCentsRef.current = 0;
+    tunerVelocityRef.current = 0;
+    tunerConfidenceRef.current = 0;
+  }, []);
+
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
+  // Persist active tab to localStorage
+  useEffect(() => {
+    localStorage.setItem('studentPortalActiveTab', activeTab);
+  }, [activeTab]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -124,6 +488,47 @@ const StudentPortal = () => {
       setCurrentVideoIndex(0);
     }
   }, [videos, currentVideoIndex]);
+
+  // Feature detection for tuner
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+      setTunerSupported(supported);
+      if (!supported) {
+        setTunerStatus('getUserMedia not supported in this browser.');
+      }
+    }
+  }, []);
+
+  // Cleanup tuner when leaving the tab or unmounting
+  useEffect(() => {
+    if (activeTab !== 'tuner' && tunerRunning) {
+      stopTuner();
+    }
+  }, [activeTab, tunerRunning, stopTuner]);
+
+  // Cleanup tuner on unmount
+  useEffect(() => {
+    return () => {
+      if (tunerRunningRef.current) {
+        tunerRunningRef.current = false;
+        if (tunerRafIdRef.current) {
+          cancelAnimationFrame(tunerRafIdRef.current);
+        }
+        if (tunerMediaStreamRef.current) {
+          for (const track of tunerMediaStreamRef.current.getTracks()) {
+            track.stop();
+          }
+        }
+        if (tunerAudioContextRef.current) {
+          tunerAudioContextRef.current.close();
+        }
+        if (tunerBeepContextRef.current && tunerBeepContextRef.current.state !== 'closed') {
+          tunerBeepContextRef.current.close();
+        }
+      }
+    };
+  }, []);
 
   // Load students list for admin mode
   const loadStudentsForAdmin = async () => {
@@ -964,6 +1369,17 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                     <FireIcon className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1 sm:mr-2" />
                     <span className="hidden sm:inline">Habit </span>Tracker
                   </button>
+                  <button
+                    onClick={() => setActiveTab('tuner')}
+                    className={`flex-1 min-w-[100px] px-3 sm:px-6 py-2 sm:py-3 rounded-md font-medium transition-all duration-200 border-2 text-sm sm:text-base ${
+                      activeTab === 'tuner'
+                        ? 'bg-green-600 text-white shadow-md border-green-600'
+                        : 'text-green-800 bg-white hover:bg-gray-100 border-white'
+                    }`}
+                  >
+                    <MusicalNoteIcon className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1 sm:mr-2" />
+                    Tuner
+                  </button>
                 </div>
               </motion.div>
 
@@ -1273,6 +1689,168 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                       </div>
                     </div>
                   </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'tuner' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="bg-white bg-opacity-90 backdrop-blur-sm rounded-xl shadow-xl p-4 sm:p-8"
+                >
+                  <div className="flex items-center mb-6">
+                    <MusicalNoteIcon className="h-8 w-8 text-green-700 mr-3" />
+                    <h2 className="text-2xl font-bold text-gray-800">Guitar Tuner</h2>
+                  </div>
+
+                  {!tunerSupported ? (
+                    <div className="text-center py-12">
+                      <MicrophoneIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 text-lg">Microphone access is not supported in this browser.</p>
+                      <p className="text-gray-500">Please use a modern browser with HTTPS or localhost.</p>
+                    </div>
+                  ) : (
+                    <div className="max-w-lg mx-auto">
+                      {/* String Selection - NOW AT TOP */}
+                      <div className="mb-6">
+                        <p className="text-sm text-gray-600 mb-3 text-center">Select String</p>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          <button
+                            onClick={() => selectTunerString('AUTO')}
+                            className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm sm:text-base ${
+                              tunerSelectedTarget === 'AUTO'
+                                ? 'bg-green-600 text-white shadow-md'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            Auto
+                          </button>
+                          {GUITAR_STRINGS.map((string) => (
+                            <button
+                              key={string.name}
+                              onClick={() => selectTunerString(string.name)}
+                              className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm sm:text-base ${
+                                tunerSelectedTarget === string.name
+                                  ? 'bg-green-600 text-white shadow-md'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              {string.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Controls - NOW AT TOP, Mobile Optimized */}
+                      <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mb-6">
+                        {!tunerRunning ? (
+                          <button
+                            onClick={startTuner}
+                            disabled={!tunerSupported}
+                            className="w-full sm:w-auto inline-flex items-center justify-center px-4 sm:px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <MicrophoneIcon className="h-5 w-5 mr-2" />
+                            Start Tuning
+                          </button>
+                        ) : (
+                          <button
+                            onClick={stopTuner}
+                            className="w-full sm:w-auto inline-flex items-center justify-center px-4 sm:px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                          >
+                            <StopIcon className="h-5 w-5 mr-2" />
+                            Stop
+                          </button>
+                        )}
+                        <button
+                          onClick={playReferenceBeep}
+                          disabled={tunerSelectedTarget === 'AUTO'}
+                          className="w-full sm:w-auto inline-flex items-center justify-center px-4 sm:px-6 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <SpeakerWaveIcon className="h-5 w-5 mr-2" />
+                          Reference Beep
+                        </button>
+                      </div>
+
+                      {/* Status Display */}
+                      <div className="text-center mb-4">
+                        <p className={`text-lg font-medium ${
+                          tunerIsInTune ? 'text-green-600' : 
+                          tunerIsSettling ? 'text-amber-600' : 'text-gray-600'
+                        }`}>
+                          {tunerStatus}
+                        </p>
+                      </div>
+
+                      {/* Tuning Meter */}
+                      <div 
+                        ref={tunerMeterRef}
+                        className="relative h-24 bg-gray-100 rounded-xl mb-6 overflow-hidden"
+                      >
+                        {/* Scale markers */}
+                        <div className="absolute inset-0 flex items-center justify-between px-4">
+                          <span className="text-xs text-gray-400 font-mono">-50</span>
+                          <span className="text-xs text-gray-400 font-mono">-25</span>
+                          <span className="text-xs text-green-600 font-bold">0</span>
+                          <span className="text-xs text-gray-400 font-mono">+25</span>
+                          <span className="text-xs text-gray-400 font-mono">+50</span>
+                        </div>
+
+                        {/* Needle */}
+                        <div 
+                          className={`absolute top-1/2 left-1/2 w-1 h-16 -mt-8 rounded-full transition-all duration-75 ${
+                            tunerIsInTune ? 'bg-green-500 shadow-lg shadow-green-500/50' : 
+                            tunerIsSettling ? 'bg-amber-400' : 'bg-red-500'
+                          }`}
+                          style={{ 
+                            transform: `translateX(calc(-50% + ${Math.max(-50, Math.min(50, tunerCents)) * 2}px))`,
+                            opacity: tunerRunning ? Math.max(0.4, tunerConfidence) : 0.3
+                          }}
+                        />
+                      </div>
+
+                      {/* Frequency Display */}
+                      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 text-center">
+                        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">String</p>
+                          <p className="text-lg sm:text-2xl font-bold text-gray-800">
+                            {tunerSelectedTarget === 'AUTO' ? 'Auto' : tunerSelectedTarget}
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Frequency</p>
+                          <p className="text-lg sm:text-2xl font-bold text-gray-800">
+                            {tunerFrequency ? tunerFrequency.toFixed(1) : '—'}
+                            <span className="text-xs sm:text-sm font-normal text-gray-500"> Hz</span>
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Note</p>
+                          <p className="text-lg sm:text-2xl font-bold text-gray-800">{tunerNote}</p>
+                        </div>
+                      </div>
+
+                      {/* Cents Display */}
+                      <div className="text-center mb-6">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Cents</p>
+                        <p className={`text-3xl sm:text-4xl font-bold ${
+                          tunerIsInTune ? 'text-green-600' : 
+                          Math.abs(tunerCents) <= 10 ? 'text-amber-600' : 'text-red-600'
+                        }`}>
+                          {tunerCents > 0 ? '+' : ''}{tunerCents}
+                        </p>
+                      </div>
+
+                      {/* Tips */}
+                      <div className="p-4 bg-green-50 rounded-lg">
+                        <p className="text-sm text-green-800">
+                          <strong>Tips:</strong> Play a single string clearly near your device&apos;s microphone. 
+                          Select a specific string for more accurate tuning, or use Auto mode for quick detection.
+                          The green center zone indicates you&apos;re in tune (within ±5 cents).
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </>
