@@ -25,6 +25,7 @@ import {
   StopIcon
 } from '@heroicons/react/24/outline';
 import Navigation from '@/components/Navigation';
+import GuitarPractice from '@/components/portal/GuitarPractice';
 import { createBrowserClient } from '@supabase/ssr';
 import type { User } from '@supabase/supabase-js';
 
@@ -55,11 +56,11 @@ const StudentPortal = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [isAdminMode, setIsAdminMode] = useState(false);
-  const [activeTab, setActiveTab] = useState<'materials' | 'videos' | 'schedule' | 'habits' | 'tuner'>(() => {
+  const [activeTab, setActiveTab] = useState<'materials' | 'videos' | 'schedule' | 'habits' | 'tuner' | 'practice'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('studentPortalActiveTab');
-      if (saved && ['materials', 'videos', 'schedule', 'habits', 'tuner'].includes(saved)) {
-        return saved as 'materials' | 'videos' | 'schedule' | 'habits' | 'tuner';
+      if (saved && ['materials', 'videos', 'schedule', 'habits', 'tuner', 'practice'].includes(saved)) {
+        return saved as 'materials' | 'videos' | 'schedule' | 'habits' | 'tuner' | 'practice';
       }
     }
     return 'materials';
@@ -1380,6 +1381,17 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                     <MusicalNoteIcon className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1 sm:mr-2" />
                     Tuner
                   </button>
+                  <button
+                    onClick={() => setActiveTab('practice')}
+                    className={`flex-1 min-w-[100px] px-3 sm:px-6 py-2 sm:py-3 rounded-md font-medium transition-all duration-200 border-2 text-sm sm:text-base ${
+                      activeTab === 'practice'
+                        ? 'bg-green-600 text-white shadow-md border-green-600'
+                        : 'text-green-800 bg-white hover:bg-gray-100 border-white'
+                    }`}
+                  >
+                    <PlayIcon className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1 sm:mr-2" />
+                    Practice
+                  </button>
                 </div>
               </motion.div>
 
@@ -1852,6 +1864,11 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                     </div>
                   )}
                 </motion.div>
+              )}
+
+              {/* Practice Tab */}
+              {activeTab === 'practice' && (
+                <GuitarPractice userId={isAdminMode && selectedStudentId ? selectedStudentId : (user?.id || '')} />
               )}
             </>
           ) : (

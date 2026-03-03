@@ -25,6 +25,8 @@ import {
 } from '@heroicons/react/24/outline';
 import AdminAuth from '@/components/admin/AdminAuth';
 import Navigation from '@/components/Navigation';
+import PracticeManagement from '@/components/admin/PracticeManagement';
+import StudentPracticeAssignment from '@/components/admin/StudentPracticeAssignment';
 import { supabase, BlogPost } from '@/lib/supabase';
 
 const AdminDashboardContent = () => {
@@ -35,14 +37,14 @@ const AdminDashboardContent = () => {
   const getInitialTab = () => {
     // First check URL params
     const urlTab = searchParams.get('tab');
-    if (urlTab && ['blog', 'music', 'messages', 'students'].includes(urlTab)) {
+    if (urlTab && ['blog', 'music', 'messages', 'students', 'practice'].includes(urlTab)) {
       return urlTab;
     }
     
     // Then check localStorage
     if (typeof window !== 'undefined') {
       const savedTab = localStorage.getItem('admin-active-tab');
-      if (savedTab && ['blog', 'music', 'messages', 'students'].includes(savedTab)) {
+      if (savedTab && ['blog', 'music', 'messages', 'students', 'practice'].includes(savedTab)) {
         return savedTab;
       }
     }
@@ -161,7 +163,7 @@ const AdminDashboardContent = () => {
   // Update activeTab when URL changes (back/forward navigation)
   useEffect(() => {
     const urlTab = searchParams.get('tab');
-    if (urlTab && ['blog', 'music', 'messages', 'students'].includes(urlTab)) {
+    if (urlTab && ['blog', 'music', 'messages', 'students', 'practice'].includes(urlTab)) {
       setActiveTab(urlTab);
     }
   }, [searchParams]);
@@ -1097,7 +1099,8 @@ const AdminDashboardContent = () => {
     { id: 'blog', name: 'Blog', fullName: 'Blog Posts', icon: DocumentTextIcon },
     { id: 'music', name: 'Music', fullName: 'Music Videos', icon: MusicalNoteIcon },
     { id: 'messages', name: 'Messages', fullName: 'Messages', icon: ChatBubbleLeftRightIcon },
-    { id: 'students', name: 'Students', fullName: 'Students', icon: AcademicCapIcon }
+    { id: 'students', name: 'Students', fullName: 'Students', icon: AcademicCapIcon },
+    { id: 'practice', name: 'Practice', fullName: 'Guitar Practice', icon: PlayIcon }
   ];
 
   const formatDate = (dateString: string) => {
@@ -2035,6 +2038,14 @@ const AdminDashboardContent = () => {
 
                 {selectedStudent && (
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Practice Config Section */}
+                    <div className="p-4 rounded-lg order-0 lg:order-0 lg:col-span-3" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <PlayIcon className="h-5 w-5 mr-2" />
+                        Practice Configuration
+                      </h3>
+                      <StudentPracticeAssignment studentId={selectedStudent} />
+                    </div>
                     {/* Materials Section */}
                     <div className="p-4 rounded-lg order-1 lg:order-1" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
                       <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -2282,6 +2293,11 @@ const AdminDashboardContent = () => {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Practice Tab Content */}
+            {activeTab === 'practice' && (
+              <PracticeManagement />
             )}
           </div>
         </div>
