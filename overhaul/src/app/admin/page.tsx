@@ -21,12 +21,14 @@ import {
   DocumentArrowUpIcon,
   CheckIcon,
   EyeIcon,
-  EyeSlashIcon
+  EyeSlashIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline';
 import AdminAuth from '@/components/admin/AdminAuth';
 import Navigation from '@/components/Navigation';
 import PracticeManagement from '@/components/admin/PracticeManagement';
 import StudentPracticeAssignment from '@/components/admin/StudentPracticeAssignment';
+import PracticeAnalytics from '@/components/admin/PracticeAnalytics';
 import { supabase, BlogPost } from '@/lib/supabase';
 
 const AdminDashboardContent = () => {
@@ -37,14 +39,14 @@ const AdminDashboardContent = () => {
   const getInitialTab = () => {
     // First check URL params
     const urlTab = searchParams.get('tab');
-    if (urlTab && ['blog', 'music', 'messages', 'students', 'practice'].includes(urlTab)) {
+    if (urlTab && ['blog', 'music', 'messages', 'students', 'practice', 'analytics'].includes(urlTab)) {
       return urlTab;
     }
     
     // Then check localStorage
     if (typeof window !== 'undefined') {
       const savedTab = localStorage.getItem('admin-active-tab');
-      if (savedTab && ['blog', 'music', 'messages', 'students', 'practice'].includes(savedTab)) {
+      if (savedTab && ['blog', 'music', 'messages', 'students', 'practice', 'analytics'].includes(savedTab)) {
         return savedTab;
       }
     }
@@ -80,6 +82,8 @@ const AdminDashboardContent = () => {
   const [studentMaterials, setStudentMaterials] = useState<any[]>([]);
   const [studentAssignments, setStudentAssignments] = useState<any[]>([]);
   const [studentVideos, setStudentVideos] = useState<any[]>([]);
+  const [studentOptIns, setStudentOptIns] = useState<Map<string, boolean>>(new Map());
+  const [studentAnalyticsOptIns, setStudentAnalyticsOptIns] = useState<Map<string, boolean>>(new Map());
   const [uploadingFile, setUploadingFile] = useState(false);
   const [newAssignment, setNewAssignment] = useState({
     day: 'monday',
@@ -163,7 +167,7 @@ const AdminDashboardContent = () => {
   // Update activeTab when URL changes (back/forward navigation)
   useEffect(() => {
     const urlTab = searchParams.get('tab');
-    if (urlTab && ['blog', 'music', 'messages', 'students', 'practice'].includes(urlTab)) {
+    if (urlTab && ['blog', 'music', 'messages', 'students', 'practice', 'analytics'].includes(urlTab)) {
       setActiveTab(urlTab);
     }
   }, [searchParams]);
@@ -287,7 +291,34 @@ const AdminDashboardContent = () => {
         console.error('Error loading students:', data.error);
       } else {
         console.log('Admin page: loaded students:', data.data?.length || 0);
-        setStudents(data.data || []);
+        const studentsList = data.data || [];
+        setStudents(studentsList);
+        
+        // Load opt-in status for each student
+        const adminEmail = localStorage.getItem('adminEmail');
+        const leaderboardOptIns = new Map<string, boolean>();
+        const analyticsOptIns = new Map<string, boolean>();
+        
+        for (const student of studentsList) {
+          try {
+            const optInResponse = await fetch(`/api/student/settings?studentId=${student.id}`);
+            if (optInResponse.ok) {
+              const optInData = await optInResponse.json();
+              leaderboardOptIns.set(student.id, optInData.leaderboard_opt_in || false);
+              analyticsOptIns.set(student.id, optInData.analytics_opt_in || false);
+              console.log(`Student ${student.email} leaderboard opt-in:`, optInData.leaderboard_opt_in, 'analytics opt-in:', optInData.analytics_opt_in);
+            }
+          } catch (err) {
+            console.error(`Error loading opt-in for student ${student.id}:`, err);
+            leaderboardOptIns.set(student.id, false);
+            analyticsOptIns.set(student.id, false);
+          }
+        }
+        
+        console.log('Total leaderboard opt-ins loaded:', leaderboardOptIns.size);
+        console.log('Total analytics opt-ins loaded:', analyticsOptIns.size);
+        setStudentOptIns(leaderboardOptIns);
+        setStudentAnalyticsOptIns(analyticsOptIns);
       }
     } catch (error) {
       console.error('Error loading students:', error);
@@ -435,6 +466,70 @@ const AdminDashboardContent = () => {
     } catch (error: any) {
       console.error('Error deleting student:', error);
       alert(`Error deleting student: ${error.message}`);
+    }
+  };
+
+  const toggleLeaderboardOptIn = async (studentId: string, currentOptIn: boolean) => {
+    try {
+      console.log(`Toggling leaderboard opt-in for ${studentId} from ${currentOptIn} to ${!currentOptIn}`);
+      const response = await fetch(`/api/admin/students/${studentId}/leaderboard`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          leaderboard_opt_in: !currentOptIn
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update leaderboard opt-in');
+      }
+
+      const result = await response.json();
+      console.log('Toggle successful:', result);
+
+      // Update local state
+      const newOptIns = new Map(studentOptIns);
+      newOptIns.set(studentId, !currentOptIn);
+      setStudentOptIns(newOptIns);
+      
+    } catch (error: any) {
+      console.error('Error toggling leaderboard opt-in:', error);
+      alert(`Error updating leaderboard setting: ${error.message}`);
+    }
+  };
+
+  const toggleAnalyticsOptIn = async (studentId: string, currentOptIn: boolean) => {
+    try {
+      console.log(`Toggling analytics opt-in for ${studentId} from ${currentOptIn} to ${!currentOptIn}`);
+      const response = await fetch(`/api/admin/students/${studentId}/analytics`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          analytics_opt_in: !currentOptIn
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update analytics opt-in');
+      }
+
+      const result = await response.json();
+      console.log('Toggle successful:', result);
+
+      // Update local state
+      const newOptIns = new Map(studentAnalyticsOptIns);
+      newOptIns.set(studentId, !currentOptIn);
+      setStudentAnalyticsOptIns(newOptIns);
+      
+    } catch (error: any) {
+      console.error('Error toggling analytics opt-in:', error);
+      alert(`Error updating analytics setting: ${error.message}`);
     }
   };
 
@@ -1100,7 +1195,8 @@ const AdminDashboardContent = () => {
     { id: 'music', name: 'Music', fullName: 'Music Videos', icon: MusicalNoteIcon },
     { id: 'messages', name: 'Messages', fullName: 'Messages', icon: ChatBubbleLeftRightIcon },
     { id: 'students', name: 'Students', fullName: 'Students', icon: AcademicCapIcon },
-    { id: 'practice', name: 'Practice', fullName: 'Guitar Practice', icon: PlayIcon }
+    { id: 'practice', name: 'Practice', fullName: 'Guitar Practice', icon: PlayIcon },
+    { id: 'analytics', name: 'Analytics', fullName: 'Practice Analytics', icon: ChartBarIcon }
   ];
 
   const formatDate = (dateString: string) => {
@@ -1984,6 +2080,38 @@ const AdminDashboardContent = () => {
                                 <span className="mx-2">•</span>
                                 <span>Joined: {new Date(student.created_at).toLocaleDateString()}</span>
                               </div>
+                              {/* Leaderboard Opt-In Checkbox */}
+                              <label className="flex items-center mt-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={studentOptIns.get(student.id) || false}
+                                  onChange={() => toggleLeaderboardOptIn(student.id, studentOptIns.get(student.id) || false)}
+                                  className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">
+                                  {studentOptIns.get(student.id) ? (
+                                    <span className="text-green-600 font-medium">✓ Leaderboard Enabled</span>
+                                  ) : (
+                                    <span>Enable Leaderboard</span>
+                                  )}
+                                </span>
+                              </label>
+                              {/* Analytics Opt-In Checkbox */}
+                              <label className="flex items-center mt-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={studentAnalyticsOptIns.get(student.id) || false}
+                                  onChange={() => toggleAnalyticsOptIn(student.id, studentAnalyticsOptIns.get(student.id) || false)}
+                                  className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">
+                                  {studentAnalyticsOptIns.get(student.id) ? (
+                                    <span className="text-blue-600 font-medium">✓ Analytics Enabled</span>
+                                  ) : (
+                                    <span>Enable Analytics</span>
+                                  )}
+                                </span>
+                              </label>
                             </div>
                             <div className="flex items-center justify-between sm:justify-end gap-2">
                               <button
@@ -2298,6 +2426,11 @@ const AdminDashboardContent = () => {
             {/* Practice Tab Content */}
             {activeTab === 'practice' && (
               <PracticeManagement />
+            )}
+
+            {/* Analytics Tab Content */}
+            {activeTab === 'analytics' && (
+              <PracticeAnalytics />
             )}
           </div>
         </div>

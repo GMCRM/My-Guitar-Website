@@ -26,6 +26,7 @@ import {
 } from '@heroicons/react/24/outline';
 import Navigation from '@/components/Navigation';
 import GuitarPractice from '@/components/portal/GuitarPractice';
+import GuitarLeaderboard from '@/components/portal/GuitarLeaderboard';
 import { createBrowserClient } from '@supabase/ssr';
 import type { User } from '@supabase/supabase-js';
 
@@ -72,6 +73,7 @@ const StudentPortal = () => {
   const [habitViewYear, setHabitViewYear] = useState(new Date().getFullYear());
   const [habitViewMonth, setHabitViewMonth] = useState(new Date().getMonth());
   const [habitLoading, setHabitLoading] = useState(false);
+  const [leaderboardOptIn, setLeaderboardOptIn] = useState(false);
 
   // Guitar Tuner state
   const [tunerRunning, setTunerRunning] = useState(false);
@@ -475,6 +477,41 @@ const StudentPortal = () => {
       loadStudentsForAdmin();
     }
   }, [user, isAdminMode]);
+
+  // Debug activeTab changes
+  useEffect(() => {
+    console.log('Active tab changed to:', activeTab);
+  }, [activeTab]);
+
+  // Fetch leaderboard opt-in status when user changes or admin selects a student
+  useEffect(() => {
+    const fetchOptInStatus = async () => {
+      // Determine which student ID to check
+      const studentIdToCheck = isAdminMode && selectedStudentId ? selectedStudentId : user?.id;
+      
+      if (!studentIdToCheck) {
+        setLeaderboardOptIn(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/student/settings?studentId=${studentIdToCheck}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Leaderboard opt-in status for student:', studentIdToCheck, '=', data.leaderboard_opt_in);
+          setLeaderboardOptIn(data.leaderboard_opt_in || false);
+        } else {
+          console.log('Failed to fetch opt-in status, response not ok');
+          setLeaderboardOptIn(false);
+        }
+      } catch (error) {
+        console.error('Error fetching leaderboard opt-in status:', error);
+        setLeaderboardOptIn(false);
+      }
+    };
+
+    fetchOptInStatus();
+  }, [user, isAdminMode, selectedStudentId]);
 
   // Reset material index when materials change
   useEffect(() => {
@@ -1701,6 +1738,32 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                       </div>
                     </div>
                   </div>
+
+                  {/* Leaderboard - only show if student has opted in */}
+                  {(() => {
+                    const currentStudentId = isAdminMode && selectedStudentId ? selectedStudentId : user?.id;
+                    
+                    console.log('Leaderboard render check:', { 
+                      leaderboardOptIn, 
+                      isAdminMode,
+                      selectedStudentId,
+                      currentStudentId,
+                      shouldShow: leaderboardOptIn && currentStudentId 
+                    });
+                    
+                    if (leaderboardOptIn && currentStudentId) {
+                      console.log('Rendering GuitarLeaderboard component for student:', currentStudentId);
+                      return <GuitarLeaderboard studentId={currentStudentId} />;
+                    } else if (!isAdminMode) {
+                      console.log('Showing ask teacher message');
+                      return (
+                        <div className="mt-8 p-6 bg-white rounded-xl shadow-md text-center">
+                          <p className="text-gray-600">🏆 Ask your teacher to enable the leaderboard for you!</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </motion.div>
               )}
 
