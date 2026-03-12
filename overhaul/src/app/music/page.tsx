@@ -574,8 +574,13 @@ export default function MusicPage() {
         // Validate that adminVideos is an array
         if (Array.isArray(adminVideos)) {
           if (adminVideos.length > 0) {
+            // Sort videos by order property (ascending) 
+            const sortedVideos = adminVideos.sort((a: any, b: any) => {
+              return (a.order || 0) - (b.order || 0);
+            });
+            
             // Convert admin video format to player format and filter out invalid entries
-            const playerVideos = adminVideos
+            const playerVideos = sortedVideos
               .map((video: any) => ({ id: video.id }))
               .filter(video => video.id && typeof video.id === 'string');
             
@@ -594,12 +599,13 @@ export default function MusicPage() {
           console.log('Invalid video data format in localStorage, clearing and using defaults');
           // Invalid format, reset to defaults
           setAllVideos(defaultVideos);
-          const defaultAdminVideos = defaultVideos.map(video => ({
+          const defaultAdminVideos = defaultVideos.map((video, index) => ({
             id: video.id,
             title: `Default Video ${video.id}`,
             author: 'Grant Matai Cross',
             thumbnail: `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
-            addedDate: new Date().toISOString()
+            addedDate: new Date().toISOString(),
+            order: index
           }));
           localStorage.setItem('musicVideos', JSON.stringify(defaultAdminVideos));
         }
@@ -608,12 +614,13 @@ export default function MusicPage() {
         // Clear corrupt localStorage data and use defaults
         localStorage.removeItem('musicVideos');
         setAllVideos(defaultVideos);
-        const defaultAdminVideos = defaultVideos.map(video => ({
+        const defaultAdminVideos = defaultVideos.map((video, index) => ({
           id: video.id,
           title: `Default Video ${video.id}`,
           author: 'Grant Matai Cross',
           thumbnail: `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
-          addedDate: new Date().toISOString()
+          addedDate: new Date().toISOString(),
+          order: index
         }));
         localStorage.setItem('musicVideos', JSON.stringify(defaultAdminVideos));
       }
@@ -621,12 +628,13 @@ export default function MusicPage() {
       // No localStorage data at all (first visit) - use defaults and save them
       console.log('No videos in localStorage, using defaults and saving them');
       setAllVideos(defaultVideos);
-      const defaultAdminVideos = defaultVideos.map(video => ({
+      const defaultAdminVideos = defaultVideos.map((video, index) => ({
         id: video.id,
         title: `Default Video ${video.id}`,
         author: 'Grant Matai Cross',
         thumbnail: `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
-        addedDate: new Date().toISOString()
+        addedDate: new Date().toISOString(),
+        order: index
       }));
       localStorage.setItem('musicVideos', JSON.stringify(defaultAdminVideos));
     }

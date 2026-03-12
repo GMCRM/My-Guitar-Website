@@ -22,7 +22,9 @@ import {
   CheckIcon,
   EyeIcon,
   EyeSlashIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  ChevronUpIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import AdminAuth from '@/components/admin/AdminAuth';
 import Navigation from '@/components/Navigation';
@@ -231,7 +233,16 @@ const AdminDashboardContent = () => {
             
             // Validate that it's an array
             if (Array.isArray(parsedVideos)) {
-              setVideoList(parsedVideos);
+              // Add order property to existing videos that don't have it
+              const videosWithOrder = parsedVideos.map((video, index) => ({
+                ...video,
+                order: video.order !== undefined ? video.order : index
+              }));
+              
+              // Sort by order to ensure correct display
+              videosWithOrder.sort((a, b) => (a.order || 0) - (b.order || 0));
+              
+              setVideoList(videosWithOrder);
             } else {
               console.error('Invalid video data format:', parsedVideos);
               setVideoList([]);
@@ -959,7 +970,8 @@ const AdminDashboardContent = () => {
         title: data.title || `Video ${videoId}`,
         author: data.author_name || 'Grant Matai Cross',
         thumbnail: data.thumbnail_url,
-        addedDate: new Date().toISOString()
+        addedDate: new Date().toISOString(),
+        order: videoList.length // Add to end of list
       };
 
       const updatedVideos = [...videoList, newVideo];
@@ -976,8 +988,34 @@ const AdminDashboardContent = () => {
 
   const removeVideo = (videoId: string) => {
     const updatedVideos = videoList.filter(v => v.id !== videoId);
-    setVideoList(updatedVideos);
-    localStorage.setItem('musicVideos', JSON.stringify(updatedVideos));
+    // Reorder the remaining videos
+    const reorderedVideos = updatedVideos.map((video, index) => ({
+      ...video,
+      order: index
+    }));
+    setVideoList(reorderedVideos);
+    localStorage.setItem('musicVideos', JSON.stringify(reorderedVideos));
+  };
+
+  const moveVideo = (videoId: string, direction: 'up' | 'down') => {
+    const videoIndex = videoList.findIndex(v => v.id === videoId);
+    if (videoIndex === -1) return;
+
+    const newIndex = direction === 'up' ? videoIndex - 1 : videoIndex + 1;
+    if (newIndex < 0 || newIndex >= videoList.length) return;
+
+    const updatedVideos = [...videoList];
+    const [movedVideo] = updatedVideos.splice(videoIndex, 1);
+    updatedVideos.splice(newIndex, 0, movedVideo);
+
+    // Update order property for all videos
+    const reorderedVideos = updatedVideos.map((video, index) => ({
+      ...video,
+      order: index
+    }));
+
+    setVideoList(reorderedVideos);
+    localStorage.setItem('musicVideos', JSON.stringify(reorderedVideos));
   };
 
   const markMessageAsRead = async (messageId: string) => {
@@ -1703,13 +1741,44 @@ const AdminDashboardContent = () => {
                       No videos added yet. Add a YouTube URL above to get started!
                     </div>
                   ) : (
-                    videoList.map((video) => (
+                    videoList.map((video, index) => (
                       <div
                         key={video.id}
                         className="flex items-center justify-between p-4 rounded-lg border border-gray-200"
                         style={{backgroundColor: 'rgba(255,255,255,0.9)'}}
                       >
                         <div className="flex items-center space-x-4">
+                          {/* Order number and reorder buttons */}
+                          <div className="flex flex-col items-center space-y-1">
+                            <div className="text-xs text-gray-500 font-medium">#{index + 1}</div>
+                            <div className="flex flex-col space-y-1">
+                              <button
+                                onClick={() => moveVideo(video.id, 'up')}
+                                disabled={index === 0}
+                                className={`p-1 rounded ${
+                                  index === 0 
+                                    ? 'text-gray-300 cursor-not-allowed' 
+                                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                                } transition-colors`}
+                                title="Move up"
+                              >
+                                <ChevronUpIcon className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => moveVideo(video.id, 'down')}
+                                disabled={index === videoList.length - 1}
+                                className={`p-1 rounded ${
+                                  index === videoList.length - 1 
+                                    ? 'text-gray-300 cursor-not-allowed' 
+                                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                                } transition-colors`}
+                                title="Move down"
+                              >
+                                <ChevronDownIcon className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          
                           <img
                             src={video.thumbnail || `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`}
                             alt={video.title}
@@ -1718,6 +1787,9 @@ const AdminDashboardContent = () => {
                           <div>
                             <h3 className="text-gray-800 font-medium">{video.title}</h3>
                             <p className="text-gray-600 text-sm">{video.author}</p>
+                            <p className="text-gray-500 text-xs">
+                              Added {new Date(video.addedDate).toLocaleDateString()}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -1726,12 +1798,14 @@ const AdminDashboardContent = () => {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-2 text-blue-600 hover:text-blue-800 transition-colors"
+                            title="Watch on YouTube"
                           >
                             <PlayIcon className="w-4 h-4" />
                           </a>
                           <button
                             onClick={() => removeVideo(video.id)}
                             className="p-2 text-red-600 hover:text-red-800 transition-colors"
+                            title="Remove video"
                           >
                             <XMarkIcon className="w-4 h-4" />
                           </button>
