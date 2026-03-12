@@ -52,47 +52,42 @@ export default function NewBlogPost() {
     setIsUploading(true);
     try {
       // Convert HEIC to JPG if needed
-      let fileToUpload = selectedFile;
       if (selectedFile.type === 'image/heic' || selectedFile.name.toLowerCase().endsWith('.heic')) {
         // For HEIC files, we'll need to handle conversion or ask user to convert
         alert('Please convert HEIC files to JPG format before uploading.');
         return null;
       }
 
-      const fileName = `blog-${Date.now()}-${selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      
-      console.log('Uploading file:', fileName, 'Size:', selectedFile.size, 'Type:', selectedFile.type);
-      
-      const { data, error } = await supabase.storage
-        .from('blog-images')
-        .upload(fileName, fileToUpload);
+      console.log('Uploading file:', selectedFile.name, 'Size:', selectedFile.size, 'Type:', selectedFile.type);
 
-      if (error) {
-        console.error('Storage upload error:', error);
-        let errorMessage = 'Error uploading image';
-        
-        if (error.message?.includes('bucket') || error.message?.includes('not found')) {
-          errorMessage = 'Blog images storage bucket not found. Please set up the storage bucket first.';
-        } else if (error.message?.includes('policy')) {
-          errorMessage = 'Permission denied. Admin access required for image uploads.';
-        } else if (error.message?.includes('size')) {
-          errorMessage = 'Image file is too large. Please use an image under 10MB.';
-        } else if (error.message?.includes('type')) {
-          errorMessage = 'Invalid file type. Please use JPG, PNG, GIF, or WebP images only.';
-        } else {
-          errorMessage = `Upload failed: ${error.message}`;
-        }
-        
-        alert(errorMessage);
+      // Get current user for admin verification
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert('You must be signed in to upload images.');
         return null;
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('blog-images')
-        .getPublicUrl(fileName);
+      // Create form data for the API endpoint
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('userEmail', user.email || '');
 
-      console.log('Image uploaded successfully:', publicUrl);
-      return publicUrl;
+      // Upload via admin API endpoint
+      const response = await fetch('/api/admin/blog-images', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API upload error:', errorData);
+        alert(errorData.error || 'Upload failed');
+        return null;
+      }
+
+      const result = await response.json();
+      console.log('Image uploaded successfully:', result.data.publicUrl);
+      return result.data.publicUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
       alert('Error uploading image: ' + (error as Error).message);
