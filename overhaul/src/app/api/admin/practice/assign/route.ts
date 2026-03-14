@@ -1,26 +1,26 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
-
-function isAdmin(email: string | null) {
-  return email === process.env.NEXT_PUBLIC_BLOG_ADMIN_EMAIL;
-}
+import { canAccessStudent, resolveActorContext, supabaseAdmin } from '../../_utils/teacherAuth';
 
 // GET — fetch a student's current practice assignments
 export async function GET(request: NextRequest) {
   const userEmail = request.nextUrl.searchParams.get('userEmail');
   const studentId = request.nextUrl.searchParams.get('studentId');
 
-  if (!isAdmin(userEmail)) {
+  const actor = await resolveActorContext(userEmail);
+  if (!actor) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
+  if (!actor.isSuperAdmin && !actor.permissions.can_assign_practice) {
+    return NextResponse.json({ error: 'Unauthorized - Practice assignment permission required' }, { status: 403 });
   }
   if (!studentId) {
     return NextResponse.json({ error: 'studentId is required' }, { status: 400 });
+  }
+
+  const hasAccess = await canAccessStudent(actor, studentId);
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Unauthorized - You can only access assigned students' }, { status: 403 });
   }
 
   const [tracksRes, patternsRes, keysRes] = await Promise.all([
@@ -58,11 +58,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { studentId, trackIds, patternIds, keyIds, userEmail } = body;
 
-    if (!isAdmin(userEmail)) {
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    if (!actor.isSuperAdmin && !actor.permissions.can_assign_practice) {
+      return NextResponse.json({ error: 'Unauthorized - Practice assignment permission required' }, { status: 403 });
     }
     if (!studentId) {
       return NextResponse.json({ error: 'studentId is required' }, { status: 400 });
+    }
+
+    const hasAccess = await canAccessStudent(actor, studentId);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Unauthorized - You can only manage assigned students' }, { status: 403 });
     }
 
     // Delete existing assignments

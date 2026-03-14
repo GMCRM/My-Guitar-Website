@@ -159,7 +159,6 @@ export async function GET(request: NextRequest) {
           student_id: studentId,
           first_name: user?.user_metadata?.first_name || '',
           last_name: user?.user_metadata?.last_name || '',
-          email: user?.email || '',
           practice_days: practiceDays
         };
       })
@@ -169,8 +168,8 @@ export async function GET(request: NextRequest) {
         if (b.practice_days !== a.practice_days) {
           return b.practice_days - a.practice_days;
         }
-        const nameA = `${a.first_name} ${a.last_name}`.trim() || a.email;
-        const nameB = `${b.first_name} ${b.last_name}`.trim() || b.email;
+        const nameA = `${a.first_name} ${a.last_name}`.trim() || `Student ${a.student_id.slice(0, 6)}`;
+        const nameB = `${b.first_name} ${b.last_name}`.trim() || `Student ${b.student_id.slice(0, 6)}`;
         return nameA.localeCompare(nameB);
       });
 

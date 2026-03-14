@@ -15,17 +15,35 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if the user is authenticated and is admin
+    // Check if the user is authenticated and has teacher access
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const userEmail = formData.get('userEmail') as string;
 
-    // Verify admin access
-    if (userEmail !== process.env.NEXT_PUBLIC_BLOG_ADMIN_EMAIL) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
-        { status: 403 }
-      );
+    // Verify teacher access for blog management (super admin or teacher with blog permission)
+    if (userEmail !== 'grantmatai@gmail.com') {
+      // Check if user is a teacher with blog management permission
+      const { data: teacher, error: teacherError } = await supabaseAdmin
+        .from('teachers')
+        .select('permissions')
+        .eq('email', userEmail)
+        .eq('is_active', true)
+        .single();
+
+      if (teacherError || !teacher) {
+        return NextResponse.json(
+          { error: 'Unauthorized - Teacher access required' },
+          { status: 403 }
+        );
+      }
+
+      // Check if teacher has blog management permission
+      if (!teacher.permissions?.can_manage_blog) {
+        return NextResponse.json(
+          { error: 'Unauthorized - Blog management permission required' },
+          { status: 403 }
+        );
+      }
     }
 
     if (!file) {

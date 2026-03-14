@@ -15,11 +15,45 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
   const [password, setPassword] = useState('');
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState('');
+  const [isTeacher, setIsTeacher] = useState(false);
+
+  const checkTeacherStatus = async (userEmail: string) => {
+    try {
+      // Check if user is super admin (hardcoded for initial access)
+      if (userEmail === 'grantmatai@gmail.com') {
+        setIsTeacher(true);
+        return true;
+      }
+
+      // Check if user is a teacher in the database
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('id, is_active')
+        .eq('email', userEmail)
+        .eq('is_active', true)
+        .single();
+
+      if (!error && data) {
+        setIsTeacher(true);
+        return true;
+      }
+
+      setIsTeacher(false);
+      return false;
+    } catch (error) {
+      console.error('Error checking teacher status:', error);
+      setIsTeacher(false);
+      return false;
+    }
+  };
 
   useEffect(() => {
     // Check if user is already signed in
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      if (user && user.email) {
+        await checkTeacherStatus(user.email);
+      }
       setUser(user);
       setLoading(false);
     };
@@ -27,7 +61,12 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
     getUser();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user?.email) {
+        await checkTeacherStatus(session.user.email);
+      } else {
+        setIsTeacher(false);
+      }
       setUser(session?.user ?? null);
       setLoading(false);
     });
@@ -48,10 +87,10 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
 
       if (error) {
         setError(error.message);
-      } else if (data.user) {
-        // Check if this is the admin email
-        const adminEmail = process.env.NEXT_PUBLIC_BLOG_ADMIN_EMAIL || 'your_email@example.com';
-        if (data.user.email !== adminEmail) {
+      } else if (data.user && data.user.email) {
+        // Check if user has teacher access
+        const hasAccess = await checkTeacherStatus(data.user.email);
+        if (!hasAccess) {
           setError('You are not authorized to access the admin panel.');
           await supabase.auth.signOut();
         }
@@ -76,18 +115,17 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
     );
   }
 
-  // Check if user is admin
-  const adminEmail = process.env.NEXT_PUBLIC_BLOG_ADMIN_EMAIL || 'your_email@example.com';
-  const isAdmin = user && user.email === adminEmail;
+  // Check if user has teacher access
+  const hasAccess = user && isTeacher;
 
-  if (!isAdmin) {
+  if (!hasAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#87AA6A'}}>
         <div className="w-full max-w-md">
           <div className="rounded-3xl p-8 shadow-forest" style={{backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)'}}>
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-white mb-2">Admin Access</h1>
-              <p className="text-white text-opacity-70">Sign in to manage your blog</p>
+              <h1 className="text-3xl font-bold text-white mb-2">Teacher Access</h1>
+              <p className="text-white text-opacity-70">Sign in to access the admin panel</p>
             </div>
 
             <form onSubmit={handleSignIn} className="space-y-6">
@@ -98,6 +136,7 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
                 <input
                   id="email"
                   type="email"
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -113,6 +152,7 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
                 <input
                   id="password"
                   type="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

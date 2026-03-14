@@ -27,7 +27,7 @@ import {
 import Navigation from '@/components/Navigation';
 import GuitarPractice from '@/components/portal/GuitarPractice';
 import GuitarLeaderboard from '@/components/portal/GuitarLeaderboard';
-import { createBrowserClient } from '@supabase/ssr';
+import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
 // YouTube API types
@@ -412,11 +412,6 @@ const StudentPortal = () => {
     tunerVelocityRef.current = 0;
     tunerConfidenceRef.current = 0;
   }, []);
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
 
   // Persist active tab to localStorage
   useEffect(() => {
@@ -1269,6 +1264,15 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
     }
   };
 
+  const getStudentDisplayName = (student: any) => {
+    const firstName = student?.user_metadata?.first_name || student?.first_name || '';
+    const lastName = student?.user_metadata?.last_name || student?.last_name || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    if (fullName) return fullName;
+    const shortId = String(student?.id || '').slice(0, 6);
+    return shortId ? `Student ${shortId}` : 'Student';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#87AA6A'}}>
@@ -1307,7 +1311,7 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
               {isAdminMode ? 'Student Portal - Admin Preview' : 'Student Portal'}
             </h1>
             <p className="text-white text-opacity-80">
-              {isAdminMode ? `Logged in as Admin: ${user.email}` : `Welcome back, ${user.email}`}
+              {isAdminMode ? 'Admin Preview Mode' : 'Welcome back'}
             </p>
           </motion.div>
 
@@ -1330,9 +1334,7 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                   <option value="">Select a student...</option>
                   {students.map((student) => (
                     <option key={student.id} value={student.id}>
-                      {student.user_metadata?.first_name && student.user_metadata?.last_name 
-                        ? `${student.user_metadata.first_name} ${student.user_metadata.last_name} (${student.email})`
-                        : student.email}
+                      {getStudentDisplayName(student)}
                     </option>
                   ))}
                 </select>
@@ -1341,10 +1343,7 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                     (Viewing as: {(() => {
                       const student = students.find(s => s.id === selectedStudentId);
                       if (!student) return 'Unknown Student';
-                      if (student.user_metadata?.first_name && student.user_metadata?.last_name) {
-                        return `${student.user_metadata.first_name} ${student.user_metadata.last_name}`;
-                      }
-                      return student.email;
+                      return getStudentDisplayName(student);
                     })()})
                   </span>
                 )}

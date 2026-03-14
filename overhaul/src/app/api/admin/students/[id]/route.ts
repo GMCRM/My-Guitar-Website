@@ -1,17 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Create admin client with service role key (server-side only)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { canAccessStudent, resolveActorContext, supabaseAdmin } from '../../_utils/teacherAuth';
 
 // PUT - Update student
 export async function PUT(
@@ -19,8 +7,18 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { email, firstName, lastName, password } = await request.json();
+    const { email, firstName, lastName, password, userEmail } = await request.json();
     const studentId = params.id;
+
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
+      return NextResponse.json({ error: 'Unauthorized - Teacher access required' }, { status: 403 });
+    }
+
+    const hasAccess = await canAccessStudent(actor, studentId, { requireManageStudentsForAssigned: true });
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Unauthorized - You can only edit your profile or assigned students' }, { status: 403 });
+    }
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
@@ -62,6 +60,21 @@ export async function DELETE(
 ) {
   try {
     const studentId = params.id;
+
+    const userEmail = request.nextUrl.searchParams.get('userEmail');
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
+      return NextResponse.json({ error: 'Unauthorized - Teacher access required' }, { status: 403 });
+    }
+
+    if (!actor.isSuperAdmin && actor.teacherStudentId === studentId) {
+      return NextResponse.json({ error: 'You cannot delete your own account from this panel' }, { status: 403 });
+    }
+
+    const hasAccess = await canAccessStudent(actor, studentId, { requireManageStudentsForAssigned: true });
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Unauthorized - You can only delete assigned students' }, { status: 403 });
+    }
 
     const { data, error } = await supabaseAdmin.auth.admin.deleteUser(studentId);
 

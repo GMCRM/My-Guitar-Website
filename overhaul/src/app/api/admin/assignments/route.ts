@@ -1,27 +1,22 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-
-// Create a service role client for admin operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { canAccessStudent, resolveActorContext, supabaseAdmin } from '../_utils/teacherAuth';
 
 export async function POST(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userEmail = searchParams.get('userEmail');
 
-    // Verify admin access
-    if (userEmail !== process.env.NEXT_PUBLIC_BLOG_ADMIN_EMAIL) {
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
       return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
+        { error: 'Unauthorized - Teacher access required' },
+        { status: 403 }
+      );
+    }
+
+    if (!actor.isSuperAdmin && !actor.permissions.can_assign_practice) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Practice assignment permission required' },
         { status: 403 }
       );
     }
@@ -33,6 +28,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Missing required fields: student_id, day, title' },
         { status: 400 }
+      );
+    }
+
+    const hasAccess = await canAccessStudent(actor, student_id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Unauthorized - You can only manage assignments for assigned students' },
+        { status: 403 }
       );
     }
 
@@ -92,6 +95,21 @@ export async function PATCH(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userEmail = searchParams.get('userEmail');
 
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Teacher access required' },
+        { status: 403 }
+      );
+    }
+
+    if (!actor.isSuperAdmin && !actor.permissions.can_assign_practice) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Practice assignment permission required' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { assignmentId, completed, day, title, description } = body;
 
@@ -104,60 +122,68 @@ export async function PATCH(request: NextRequest) {
 
     console.log('Admin API: Updating assignment:', assignmentId);
 
-    // For admin users, allow updates
-    const isAdmin = userEmail === process.env.NEXT_PUBLIC_BLOG_ADMIN_EMAIL;
-    
-    if (isAdmin) {
-      // Prepare update object - only include fields that are provided
-      const updateData: any = {};
-      
-      if (completed !== undefined) updateData.completed = completed;
-      if (day !== undefined) {
-        updateData.day = day;
-        const dayOrder = {
-          'monday': 1,
-          'tuesday': 2,
-          'wednesday': 3,
-          'thursday': 4,
-          'friday': 5,
-          'saturday': 6,
-          'sunday': 7
-        };
-        updateData.day_order = dayOrder[day as keyof typeof dayOrder];
-      }
-      if (title !== undefined) updateData.title = title;
-      if (description !== undefined) updateData.description = description;
+    const { data: existingAssignment, error: existingAssignmentError } = await supabaseAdmin
+      .from('student_assignments')
+      .select('id, student_id')
+      .eq('id', assignmentId)
+      .single();
 
-      // Admin can update any assignment
-      const { data: assignment, error: updateError } = await supabaseAdmin
-        .from('student_assignments')
-        .update(updateData)
-        .eq('id', assignmentId)
-        .select()
-        .single();
-
-      if (updateError) {
-        console.error('Admin API: Assignment update error:', updateError);
-        return NextResponse.json(
-          { error: `Database error: ${updateError.message}` },
-          { status: 500 }
-        );
-      }
-
-      console.log('Admin API: Assignment updated successfully');
-
-      return NextResponse.json({
-        success: true,
-        data: assignment
-      });
-    } else {
-      // For non-admin users, we could add student-specific logic here
-      // For now, return unauthorized for non-admin assignment updates
+    if (existingAssignmentError || !existingAssignment) {
       return NextResponse.json(
-        { error: 'Unauthorized - Admin access required for assignment updates' },
+        { error: 'Assignment not found' },
+        { status: 404 }
+      );
+    }
+
+    const hasAccess = await canAccessStudent(actor, existingAssignment.student_id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Unauthorized - You can only manage assignments for assigned students' },
         { status: 403 }
       );
     }
+
+    // Prepare update object - only include fields that are provided
+    const updateData: any = {};
+    
+    if (completed !== undefined) updateData.completed = completed;
+    if (day !== undefined) {
+      updateData.day = day;
+      const dayOrder = {
+        'monday': 1,
+        'tuesday': 2,
+        'wednesday': 3,
+        'thursday': 4,
+        'friday': 5,
+        'saturday': 6,
+        'sunday': 7
+      };
+      updateData.day_order = dayOrder[day as keyof typeof dayOrder];
+    }
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+
+    const { data: assignment, error: updateError } = await supabaseAdmin
+      .from('student_assignments')
+      .update(updateData)
+      .eq('id', assignmentId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Admin API: Assignment update error:', updateError);
+      return NextResponse.json(
+        { error: `Database error: ${updateError.message}` },
+        { status: 500 }
+      );
+    }
+
+    console.log('Admin API: Assignment updated successfully');
+
+    return NextResponse.json({
+      success: true,
+      data: assignment
+    });
 
   } catch (error: any) {
     console.error('Admin API: Unexpected error:', error);
@@ -174,10 +200,17 @@ export async function GET(request: NextRequest) {
     const studentId = searchParams.get('studentId');
     const userEmail = searchParams.get('userEmail');
 
-    // Verify admin access
-    if (userEmail !== process.env.NEXT_PUBLIC_BLOG_ADMIN_EMAIL) {
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
       return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
+        { error: 'Unauthorized - Teacher access required' },
+        { status: 403 }
+      );
+    }
+
+    if (!actor.isSuperAdmin && !actor.permissions.can_assign_practice) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Practice assignment permission required' },
         { status: 403 }
       );
     }
@@ -186,6 +219,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'Missing student ID' },
         { status: 400 }
+      );
+    }
+
+    const hasAccess = await canAccessStudent(actor, studentId);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Unauthorized - You can only view assignments for assigned students' },
+        { status: 403 }
       );
     }
 

@@ -1,17 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-
-// Initialize Supabase with service role for admin operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { canAccessStudent, resolveActorContext, supabaseAdmin } from '../../../_utils/teacherAuth';
 
 export async function PATCH(
   request: NextRequest,
@@ -20,7 +8,20 @@ export async function PATCH(
   try {
     const studentId = params.id;
     const body = await request.json();
-    const { analytics_opt_in } = body;
+    const { analytics_opt_in, userEmail } = body;
+
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
+      return NextResponse.json({ error: 'Unauthorized - Teacher access required' }, { status: 403 });
+    }
+
+    const hasAccess = await canAccessStudent(actor, studentId, { requireManageStudentsForAssigned: true });
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Unauthorized - You can only update your profile or assigned students' },
+        { status: 403 }
+      );
+    }
 
     console.log('PATCH analytics opt-in for student:', studentId, 'to:', analytics_opt_in);
 

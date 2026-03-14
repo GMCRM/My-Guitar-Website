@@ -79,6 +79,27 @@ Submitted at: ${new Date().toLocaleString()}
   }
 };
 
+const hasMessageManagementAccess = async (supabase: any): Promise<boolean> => {
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    return false;
+  }
+
+  if (user.email === 'grantmatai@gmail.com') {
+    return true;
+  }
+
+  const { data: teacher } = await supabase
+    .from('teachers')
+    .select('permissions')
+    .eq('email', user.email)
+    .eq('is_active', true)
+    .single();
+
+  return Boolean(teacher?.permissions?.can_manage_messages);
+};
+
 export async function POST(request: NextRequest) {
   try {
     const { name, email, phone, subject, message } = await request.json();
@@ -236,10 +257,8 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user || user.email !== 'grantmatai@gmail.com') {
+    const canManageMessages = await hasMessageManagementAccess(supabase);
+    if (!canManageMessages) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -306,10 +325,8 @@ export async function PATCH(request: NextRequest) {
       }
     );
 
-    // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user || user.email !== 'grantmatai@gmail.com') {
+    const canManageMessages = await hasMessageManagementAccess(supabase);
+    if (!canManageMessages) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -376,10 +393,8 @@ export async function DELETE(request: NextRequest) {
       }
     );
 
-    // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user || user.email !== 'grantmatai@gmail.com') {
+    const canManageMessages = await hasMessageManagementAccess(supabase);
+    if (!canManageMessages) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

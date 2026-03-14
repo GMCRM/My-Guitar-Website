@@ -1,17 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Create admin client with service role key (server-side only)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { canAccessStudent, resolveActorContext, supabaseAdmin } from '../../_utils/teacherAuth';
 
 // DELETE - Delete an assignment
 export async function DELETE(
@@ -22,12 +10,31 @@ export async function DELETE(
     const { searchParams } = new URL(request.url);
     const userEmail = searchParams.get('userEmail');
 
-    // Verify admin access
-    if (userEmail !== 'grantmatai@gmail.com') {
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    if (!actor.isSuperAdmin && !actor.permissions.can_assign_practice) {
+      return NextResponse.json({ error: 'Unauthorized - Practice assignment permission required' }, { status: 403 });
+    }
+
     const assignmentId = params.id;
+
+    const { data: assignment, error: assignmentError } = await supabaseAdmin
+      .from('student_assignments')
+      .select('id, student_id')
+      .eq('id', assignmentId)
+      .single();
+
+    if (assignmentError || !assignment) {
+      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
+    }
+
+    const hasAccess = await canAccessStudent(actor, assignment.student_id);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Unauthorized - You can only delete assignments for assigned students' }, { status: 403 });
+    }
 
     // Delete from database
     const { error: dbError } = await supabaseAdmin

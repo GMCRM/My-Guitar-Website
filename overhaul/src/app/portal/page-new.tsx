@@ -10,7 +10,7 @@ import {
   AcademicCapIcon
 } from '@heroicons/react/24/outline';
 import Navigation from '@/components/Navigation';
-import { createBrowserClient } from '@supabase/ssr';
+import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
 const StudentPortal = () => {
@@ -18,10 +18,6 @@ const StudentPortal = () => {
   const [loading, setLoading] = useState(true);
   const [materials, setMaterials] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
 
   useEffect(() => {
     const getUser = async () => {
@@ -156,7 +152,7 @@ const StudentPortal = () => {
             className="text-center mb-8"
           >
             <h1 className="text-3xl font-bold text-white mb-2">Student Portal</h1>
-            <p className="text-white text-opacity-80">Welcome back, {user.email}</p>
+            <p className="text-white text-opacity-80">Welcome back</p>
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

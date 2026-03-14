@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { ChartBarIcon } from '@heroicons/react/24/outline';
+import { supabase } from '@/lib/supabase';
 
 interface PracticeAnalyticsRecord {
   student_id: string;
   student_name: string;
-  email: string;
   month: number;
   year: number;
   practice_days: number;
@@ -17,20 +17,42 @@ export default function PracticeAnalytics() {
   const [filteredData, setFilteredData] = useState<PracticeAnalyticsRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
   const [selectedStudent, setSelectedStudent] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [sortField, setSortField] = useState<keyof PracticeAnalyticsRecord>('year');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  // Fetch analytics data
+  // Track auth state for reliable teacher analytics loading
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserEmail(user?.email || '');
+    };
+
+    loadCurrentUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUserEmail(session?.user?.email || '');
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Fetch analytics data once auth state is ready
   useEffect(() => {
     async function fetchAnalytics() {
+      if (!currentUserEmail) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
       try {
-        const response = await fetch('/api/admin/analytics/practice');
+        const response = await fetch(`/api/admin/analytics/practice?userEmail=${encodeURIComponent(currentUserEmail)}`);
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -51,7 +73,7 @@ export default function PracticeAnalytics() {
     }
 
     fetchAnalytics();
-  }, []);
+  }, [currentUserEmail]);
 
   // Get unique students for filter dropdown
   const uniqueStudents = Array.from(
@@ -314,7 +336,6 @@ export default function PracticeAnalytics() {
                       <div className="text-sm font-medium text-gray-900">
                         {record.student_name}
                       </div>
-                      <div className="text-xs text-gray-500">{record.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {record.year}

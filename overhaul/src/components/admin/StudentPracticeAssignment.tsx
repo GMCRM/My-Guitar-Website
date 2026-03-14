@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckIcon, MusicalNoteIcon, SpeakerWaveIcon } from '@heroicons/react/24/outline';
 import type { BackingTrack, StrummingPattern, MusicalKey } from '@/lib/types/practice';
-
-const ADMIN_EMAIL = 'grantmatai@gmail.com';
+import { supabase } from '@/lib/supabase';
 
 interface Props {
   studentId: string;
@@ -28,11 +27,18 @@ export default function StudentPracticeAssignment({ studentId }: Props) {
   const loadData = async () => {
     setLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        throw new Error('Not authenticated');
+      }
+
+      const userEmail = encodeURIComponent(user.email);
+
       const [tracksRes, patternsRes, keysRes, assignRes] = await Promise.all([
-        fetch(`/api/admin/practice/tracks?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`),
-        fetch(`/api/admin/practice/patterns?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`),
-        fetch(`/api/admin/practice/keys?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`),
-        fetch(`/api/admin/practice/assign?userEmail=${encodeURIComponent(ADMIN_EMAIL)}&studentId=${studentId}`),
+        fetch(`/api/admin/practice/tracks?userEmail=${userEmail}`),
+        fetch(`/api/admin/practice/patterns?userEmail=${userEmail}`),
+        fetch(`/api/admin/practice/keys?userEmail=${userEmail}`),
+        fetch(`/api/admin/practice/assign?userEmail=${userEmail}&studentId=${studentId}`),
       ]);
 
       const [tracksJson, patternsJson, keysJson, assignJson] = await Promise.all([
@@ -91,6 +97,11 @@ export default function StudentPracticeAssignment({ studentId }: Props) {
   const saveAssignments = async () => {
     setSaving(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        throw new Error('Not authenticated');
+      }
+
       const res = await fetch('/api/admin/practice/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,7 +110,7 @@ export default function StudentPracticeAssignment({ studentId }: Props) {
           trackIds: Array.from(assignedTrackIds),
           patternIds: Array.from(assignedPatternIds),
           keyIds: Array.from(assignedKeyIds),
-          userEmail: ADMIN_EMAIL,
+          userEmail: user.email,
         }),
       });
       const json = await res.json();

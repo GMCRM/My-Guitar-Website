@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Bars3Icon, XMarkIcon, UserIcon, CogIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
-import { createBrowserClient } from '@supabase/ssr';
 import type { User } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 const navigation = [
   { name: 'Home', href: '/' },
@@ -16,33 +16,51 @@ const navigation = [
 export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [hasTeacherAccess, setHasTeacherAccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [authError, setAuthError] = useState('');
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const isSuperAdmin = user?.email === 'grantmatai@gmail.com';
+  const portalLabel = isSuperAdmin ? 'Admin Panel' : 'Teacher Portal';
 
-  // Check if the user is the admin
-  const adminEmail = process.env.NEXT_PUBLIC_BLOG_ADMIN_EMAIL || 'your_email@example.com';
-  const isAdmin = user?.email === adminEmail;
+  const checkTeacherAccess = async (userEmail?: string) => {
+    if (!userEmail) {
+      setHasTeacherAccess(false);
+      return;
+    }
+
+    if (userEmail === 'grantmatai@gmail.com') {
+      setHasTeacherAccess(true);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('teachers')
+      .select('id')
+      .eq('email', userEmail)
+      .eq('is_active', true)
+      .single();
+
+    setHasTeacherAccess(!error && !!data);
+  };
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      await checkTeacherAccess(user?.email);
       setLoading(false);
     };
 
     getUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setUser(session?.user ?? null);
+        await checkTeacherAccess(session?.user?.email);
         setLoading(false);
       }
     );
@@ -133,12 +151,12 @@ export default function Navigation() {
               >
                 Student Portal
               </Link>
-              {isAdmin && (
+              {hasTeacherAccess && (
                 <Link
                   href="/admin"
                   className="text-sm font-semibold leading-6 text-white hover:text-white hover:text-opacity-80 transition-colors"
                 >
-                  Admin Panel
+                  {portalLabel}
                 </Link>
               )}
               <button
@@ -212,14 +230,14 @@ export default function Navigation() {
                         <UserIcon className="mr-3 h-5 w-5" />
                         Student Portal
                       </Link>
-                      {isAdmin && (
+                      {hasTeacherAccess && (
                         <Link
                           href="/admin"
                           className="flex items-center -mx-3 rounded-lg px-3 py-2 text-base font-semibold leading-7 text-white hover:bg-white hover:bg-opacity-20 hover:text-white"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           <CogIcon className="mr-3 h-5 w-5" />
-                          Admin Panel
+                          {portalLabel}
                         </Link>
                       )}
                       <button
@@ -275,6 +293,7 @@ export default function Navigation() {
                     <input
                       type="email"
                       id="email"
+                      autoComplete="username"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white bg-transparent placeholder-gray-300"
@@ -289,6 +308,7 @@ export default function Navigation() {
                     <input
                       type="password"
                       id="password"
+                      autoComplete="current-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white bg-transparent placeholder-gray-300"

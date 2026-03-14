@@ -1,17 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-
-// Create a service role client for admin operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { canAccessStudent, resolveActorContext, supabaseAdmin } from '../_utils/teacherAuth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,10 +9,17 @@ export async function GET(request: NextRequest) {
     const year = searchParams.get('year');
     const month = searchParams.get('month');
 
-    // Verify admin access
-    if (userEmail !== process.env.NEXT_PUBLIC_BLOG_ADMIN_EMAIL) {
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
       return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
+        { error: 'Unauthorized - Teacher access required' },
+        { status: 403 }
+      );
+    }
+
+    if (!actor.isSuperAdmin && !actor.permissions.can_view_analytics) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Analytics permission required' },
         { status: 403 }
       );
     }
@@ -40,6 +35,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'Missing year or month' },
         { status: 400 }
+      );
+    }
+
+    const hasAccess = await canAccessStudent(actor, studentId);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Unauthorized - You can only view habits for assigned students' },
+        { status: 403 }
       );
     }
 
@@ -91,10 +94,17 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userEmail = searchParams.get('userEmail');
 
-    // Verify admin access
-    if (userEmail !== process.env.NEXT_PUBLIC_BLOG_ADMIN_EMAIL) {
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
       return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
+        { error: 'Unauthorized - Teacher access required' },
+        { status: 403 }
+      );
+    }
+
+    if (!actor.isSuperAdmin && !actor.permissions.can_view_analytics) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Analytics permission required' },
         { status: 403 }
       );
     }
@@ -106,6 +116,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Missing student ID or date' },
         { status: 400 }
+      );
+    }
+
+    const hasAccess = await canAccessStudent(actor, studentId);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Unauthorized - You can only modify habits for assigned students' },
+        { status: 403 }
       );
     }
 

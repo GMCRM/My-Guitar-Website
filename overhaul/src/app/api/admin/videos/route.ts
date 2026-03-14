@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { canAccessStudent, resolveActorContext } from '../_utils/teacherAuth';
 
 // Create Supabase client with service role (bypasses RLS)
 const supabase = createClient(
@@ -56,12 +57,22 @@ export async function GET(request: NextRequest) {
 
     console.log('Admin videos API - GET request:', { studentId, userEmail });
 
-    if (!userEmail || userEmail !== 'grantmatai@gmail.com') {
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    if (!actor.isSuperAdmin && !actor.permissions.can_upload_videos) {
+      return NextResponse.json({ error: 'Unauthorized - Video management permission required' }, { status: 403 });
     }
 
     if (!studentId) {
       return NextResponse.json({ error: 'Student ID is required' }, { status: 400 });
+    }
+
+    const hasAccess = await canAccessStudent(actor, studentId);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Unauthorized - You can only view videos for assigned students' }, { status: 403 });
     }
 
     // Fetch videos for the student
@@ -90,8 +101,13 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userEmail = searchParams.get('userEmail');
 
-    if (!userEmail || userEmail !== 'grantmatai@gmail.com') {
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    if (!actor.isSuperAdmin && !actor.permissions.can_upload_videos) {
+      return NextResponse.json({ error: 'Unauthorized - Video management permission required' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -101,6 +117,11 @@ export async function POST(request: NextRequest) {
 
     if (!studentId || !youtubeUrl) {
       return NextResponse.json({ error: 'Student ID and YouTube URL are required' }, { status: 400 });
+    }
+
+    const hasAccess = await canAccessStudent(actor, studentId);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Unauthorized - You can only add videos for assigned students' }, { status: 403 });
     }
 
     // Extract YouTube video ID
@@ -145,8 +166,13 @@ export async function DELETE(request: NextRequest) {
     const userEmail = searchParams.get('userEmail');
     const videoId = searchParams.get('videoId');
 
-    if (!userEmail || userEmail !== 'grantmatai@gmail.com') {
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    if (!actor.isSuperAdmin && !actor.permissions.can_upload_videos) {
+      return NextResponse.json({ error: 'Unauthorized - Video management permission required' }, { status: 403 });
     }
 
     if (!videoId) {
@@ -154,6 +180,21 @@ export async function DELETE(request: NextRequest) {
     }
 
     console.log('Admin videos API - DELETE request:', { videoId });
+
+    const { data: targetVideo, error: targetVideoError } = await supabase
+      .from('student_videos')
+      .select('id, student_id')
+      .eq('id', videoId)
+      .single();
+
+    if (targetVideoError || !targetVideo) {
+      return NextResponse.json({ error: 'Video not found' }, { status: 404 });
+    }
+
+    const hasAccess = await canAccessStudent(actor, targetVideo.student_id);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Unauthorized - You can only delete videos for assigned students' }, { status: 403 });
+    }
 
     // Delete video from database
     const { error } = await supabase

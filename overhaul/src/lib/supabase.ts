@@ -28,3 +28,33 @@ export interface Subscriber {
   subscribed_at: string
   active: boolean
 }
+
+// Three-tier system types
+export interface TeacherPermissions {
+  can_manage_blog: boolean
+  can_manage_materials: boolean
+  can_assign_practice: boolean
+  can_view_analytics: boolean
+  can_manage_students: boolean
+  can_upload_videos: boolean
+  can_manage_messages: boolean
+}
+
+export interface Teacher {
+  id: string
+  student_id: string
+  email: string
+  created_at: string
+  created_by?: string
+  is_active: boolean
+  permissions: TeacherPermissions
+}
+
+export interface Student {
+  id: string
+  email: string
+  name: string
+  created_at: string
+  assigned_teacher_id?: string
+  analytics_opt_in?: boolean
+}

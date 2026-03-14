@@ -31,7 +31,7 @@ import Navigation from '@/components/Navigation';
 import PracticeManagement from '@/components/admin/PracticeManagement';
 import StudentPracticeAssignment from '@/components/admin/StudentPracticeAssignment';
 import PracticeAnalytics from '@/components/admin/PracticeAnalytics';
-import { supabase, BlogPost } from '@/lib/supabase';
+import { supabase, BlogPost, TeacherPermissions } from '@/lib/supabase';
 
 const AdminDashboardContent = () => {
   const router = useRouter();
@@ -41,14 +41,14 @@ const AdminDashboardContent = () => {
   const getInitialTab = () => {
     // First check URL params
     const urlTab = searchParams.get('tab');
-    if (urlTab && ['blog', 'music', 'messages', 'students', 'practice', 'analytics'].includes(urlTab)) {
+    if (urlTab && ['blog', 'music', 'messages', 'students', 'practice', 'analytics', 'teachers'].includes(urlTab)) {
       return urlTab;
     }
     
     // Then check localStorage
     if (typeof window !== 'undefined') {
       const savedTab = localStorage.getItem('admin-active-tab');
-      if (savedTab && ['blog', 'music', 'messages', 'students', 'practice', 'analytics'].includes(savedTab)) {
+      if (savedTab && ['blog', 'music', 'messages', 'students', 'practice', 'analytics', 'teachers'].includes(savedTab)) {
         return savedTab;
       }
     }
@@ -67,6 +67,20 @@ const AdminDashboardContent = () => {
     subscribers: 0,
     unreadMessages: 0
   });
+  const [currentUserEmail, setCurrentUserEmail] = useState('');
+  const [currentUserId, setCurrentUserId] = useState('');
+
+  const defaultPermissions: TeacherPermissions = {
+    can_manage_blog: false,
+    can_manage_materials: false,
+    can_assign_practice: false,
+    can_view_analytics: false,
+    can_manage_students: false,
+    can_upload_videos: false,
+    can_manage_messages: false
+  };
+
+  const [currentUserPermissions, setCurrentUserPermissions] = useState<TeacherPermissions>(defaultPermissions);
 
   // YouTube Videos State
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -98,6 +112,23 @@ const AdminDashboardContent = () => {
 
   // Video management state
   const [newVideoUrl, setNewVideoUrl] = useState('');
+
+  // Teachers State
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [allStudents, setAllStudents] = useState<any[]>([]);
+  const [selectedStudentForPromotion, setSelectedStudentForPromotion] = useState<string>('');
+  const [teacherPermissions, setTeacherPermissions] = useState<any>({
+    can_manage_blog: false,
+    can_manage_materials: true,
+    can_assign_practice: true,
+    can_view_analytics: true,
+    can_manage_students: false,
+    can_upload_videos: false,
+    can_manage_messages: false
+  });
+  const [selectedTeacherForEdit, setSelectedTeacherForEdit] = useState<any>(null);
+  const [teacherStudentAssignments, setTeacherStudentAssignments] = useState<string[]>([]);
+  const [loadingTeachers, setLoadingTeachers] = useState(false);
   const [newVideoDescription, setNewVideoDescription] = useState('');
   const [addingVideo, setAddingVideo] = useState(false);
 
@@ -133,12 +164,282 @@ const AdminDashboardContent = () => {
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [uploadingEditImage, setUploadingEditImage] = useState(false);
 
+  const loadCurrentUserAccess = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) {
+      setCurrentUserEmail('');
+      setCurrentUserId('');
+      setCurrentUserPermissions(defaultPermissions);
+      return { email: '', permissions: defaultPermissions, isSuperAdmin: false };
+    }
+
+    setCurrentUserEmail(user.email);
+    setCurrentUserId(user.id);
+
+    if (user.email === 'grantmatai@gmail.com') {
+      const superAdminPermissions: TeacherPermissions = {
+        can_manage_blog: true,
+        can_manage_materials: true,
+        can_assign_practice: true,
+        can_view_analytics: true,
+        can_manage_students: true,
+        can_upload_videos: true,
+        can_manage_messages: true
+      };
+      setCurrentUserPermissions(superAdminPermissions);
+      return { email: user.email, permissions: superAdminPermissions, isSuperAdmin: true };
+    }
+
+    const { data: teacher } = await supabase
+      .from('teachers')
+      .select('permissions')
+      .eq('email', user.email)
+      .eq('is_active', true)
+      .single();
+
+    const normalizedPermissions: TeacherPermissions = {
+      can_manage_blog: Boolean(teacher?.permissions?.can_manage_blog),
+      can_manage_materials: Boolean(teacher?.permissions?.can_manage_materials),
+      can_assign_practice: Boolean(teacher?.permissions?.can_assign_practice),
+      can_view_analytics: Boolean(teacher?.permissions?.can_view_analytics),
+      can_manage_students: Boolean(teacher?.permissions?.can_manage_students),
+      can_upload_videos: Boolean(teacher?.permissions?.can_upload_videos),
+      can_manage_messages: Boolean(teacher?.permissions?.can_manage_messages)
+    };
+
+    setCurrentUserPermissions(normalizedPermissions);
+    return { email: user.email, permissions: normalizedPermissions, isSuperAdmin: false };
+  };
+
+  // Teacher Management Functions
+  const loadTeachers = async () => {
+    setLoadingTeachers(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.email !== 'grantmatai@gmail.com') {
+        throw new Error('Super admin access required');
+      }
+
+      const response = await fetch(`/api/admin/teachers?userEmail=${user.email}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load teachers');
+      }
+
+      setTeachers(data.teachers || []);
+      setAllStudents(data.allStudents || []);
+    } catch (error: any) {
+      console.error('Error loading teachers:', error);
+      alert(`Error loading teachers: ${error.message}`);
+    } finally {
+      setLoadingTeachers(false);
+    }
+  };
+
+  const promoteStudentToTeacher = async () => {
+    if (!selectedStudentForPromotion) {
+      alert('Please select a student to promote');
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.email !== 'grantmatai@gmail.com') {
+        throw new Error('Super admin access required');
+      }
+
+      const response = await fetch('/api/admin/teachers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userEmail: user.email,
+          studentId: selectedStudentForPromotion,
+          permissions: teacherPermissions
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to promote student');
+      }
+
+      // Reset form
+      setSelectedStudentForPromotion('');
+      setTeacherPermissions({
+        can_manage_blog: false,
+        can_manage_materials: true,
+        can_assign_practice: true,
+        can_view_analytics: true,
+        can_manage_students: false,
+        can_upload_videos: false,
+        can_manage_messages: false
+      });
+
+      // Reload teachers
+      loadTeachers();
+      
+      alert('Student promoted to teacher successfully!');
+    } catch (error: any) {
+      console.error('Error promoting student:', error);
+      alert(`Error promoting student: ${error.message}`);
+    }
+  };
+
+  const updateTeacherPermissions = async (teacherId: string) => {
+    if (!selectedTeacherForEdit) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.email !== 'grantmatai@gmail.com') {
+        throw new Error('Super admin access required');
+      }
+
+      const response = await fetch('/api/admin/teachers', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userEmail: user.email,
+          teacherId,
+          permissions: selectedTeacherForEdit.permissions,
+          action: 'updatePermissions'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update permissions');
+      }
+
+      // Reset edit state
+      setSelectedTeacherForEdit(null);
+
+      // Reload teachers
+      loadTeachers();
+      
+      alert('Teacher permissions updated successfully!');
+    } catch (error: any) {
+      console.error('Error updating teacher permissions:', error);
+      alert(`Error updating teacher permissions: ${error.message}`);
+    }
+  };
+
+  const updateStudentAssignments = async (teacherId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.email !== 'grantmatai@gmail.com') {
+        throw new Error('Super admin access required');
+      }
+
+      const response = await fetch('/api/admin/teachers', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userEmail: user.email,
+          teacherId,
+          studentAssignments: teacherStudentAssignments,
+          action: 'updateAssignments'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update student assignments');
+      }
+
+      // Reset assignment state
+      setTeacherStudentAssignments([]);
+
+      // Reload teachers
+      loadTeachers();
+      
+      alert('Student assignments updated successfully!');
+    } catch (error: any) {
+      console.error('Error updating student assignments:', error);
+      alert(`Error updating student assignments: ${error.message}`);
+    }
+  };
+
+  const demoteTeacher = async (teacherId: string, teacherEmail: string) => {
+    if (teacherEmail === 'grantmatai@gmail.com') {
+      alert('Cannot demote super admin');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to demote this teacher? All their assigned students will be reassigned to you.`)) {
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.email !== 'grantmatai@gmail.com') {
+        throw new Error('Super admin access required');
+      }
+
+      const response = await fetch(`/api/admin/teachers?userEmail=${user.email}&teacherId=${teacherId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to demote teacher');
+      }
+
+      // Reload teachers
+      loadTeachers();
+      
+      alert('Teacher demoted successfully! Students have been reassigned to you.');
+    } catch (error: any) {
+      console.error('Error demoting teacher:', error);
+      alert(`Error demoting teacher: ${error.message}`);
+    }
+  };
+
+  const initializeDashboardData = async () => {
+    const { email, permissions, isSuperAdmin } = await loadCurrentUserAccess();
+
+    if (!email) {
+      return;
+    }
+
+    if (permissions.can_manage_blog) {
+      loadPosts();
+      loadStats();
+    }
+
+    if (permissions.can_upload_videos) {
+      loadVideoList();
+    }
+
+    if (permissions.can_manage_messages) {
+      loadMessages();
+    }
+
+    loadStudents(email);
+
+    if (isSuperAdmin) {
+      loadTeachers();
+    }
+  };
+
   useEffect(() => {
-    loadPosts();
-    loadStats();
-    loadVideoList();
-    loadMessages();
-    loadStudents();
+    initializeDashboardData();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      initializeDashboardData();
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // Update stats when messages change
@@ -169,7 +470,7 @@ const AdminDashboardContent = () => {
   // Update activeTab when URL changes (back/forward navigation)
   useEffect(() => {
     const urlTab = searchParams.get('tab');
-    if (urlTab && ['blog', 'music', 'messages', 'students', 'practice', 'analytics'].includes(urlTab)) {
+    if (urlTab && ['blog', 'music', 'messages', 'students', 'practice', 'analytics', 'teachers'].includes(urlTab)) {
       setActiveTab(urlTab);
     }
   }, [searchParams]);
@@ -292,10 +593,15 @@ const AdminDashboardContent = () => {
     }
   };
 
-  const loadStudents = async () => {
+  const loadStudents = async (emailOverride?: string) => {
     try {
+      const userEmail = emailOverride || currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) {
+        return;
+      }
+
       // Load all users from API route
-      const response = await fetch('/api/admin/students');
+      const response = await fetch(`/api/admin/students?userEmail=${encodeURIComponent(userEmail)}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -306,7 +612,6 @@ const AdminDashboardContent = () => {
         setStudents(studentsList);
         
         // Load opt-in status for each student
-        const adminEmail = localStorage.getItem('adminEmail');
         const leaderboardOptIns = new Map<string, boolean>();
         const analyticsOptIns = new Map<string, boolean>();
         
@@ -317,7 +622,7 @@ const AdminDashboardContent = () => {
               const optInData = await optInResponse.json();
               leaderboardOptIns.set(student.id, optInData.leaderboard_opt_in || false);
               analyticsOptIns.set(student.id, optInData.analytics_opt_in || false);
-              console.log(`Student ${student.email} leaderboard opt-in:`, optInData.leaderboard_opt_in, 'analytics opt-in:', optInData.analytics_opt_in);
+              console.log(`Student ${student.id} leaderboard opt-in:`, optInData.leaderboard_opt_in, 'analytics opt-in:', optInData.analytics_opt_in);
             }
           } catch (err) {
             console.error(`Error loading opt-in for student ${student.id}:`, err);
@@ -345,6 +650,8 @@ const AdminDashboardContent = () => {
     setCreatingStudent(true);
     
     try {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
+
       // Create new user via API route
       const response = await fetch('/api/admin/students', {
         method: 'POST',
@@ -355,7 +662,8 @@ const AdminDashboardContent = () => {
           email: newStudentForm.email,
           password: newStudentForm.password,
           firstName: newStudentForm.firstName,
-          lastName: newStudentForm.lastName
+          lastName: newStudentForm.lastName,
+          userEmail
         }),
       });
 
@@ -374,9 +682,9 @@ const AdminDashboardContent = () => {
       });
 
       // Reload students list
-      loadStudents();
+      loadStudents(currentUserEmail);
       
-      alert(`Student ${newStudentForm.email} created successfully!`);
+      alert('Student created successfully!');
     } catch (error: any) {
       console.error('Error creating student:', error);
       alert(`Error creating student: ${error.message}`);
@@ -413,6 +721,8 @@ const AdminDashboardContent = () => {
     }
 
     try {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
+
       // Update user via API route
       const response = await fetch(`/api/admin/students/${editingStudent.id}`, {
         method: 'PUT',
@@ -423,7 +733,8 @@ const AdminDashboardContent = () => {
           email: editStudentForm.email,
           firstName: editStudentForm.firstName,
           lastName: editStudentForm.lastName,
-          password: editStudentForm.password
+          password: editStudentForm.password,
+          userEmail
         }),
       });
 
@@ -435,7 +746,7 @@ const AdminDashboardContent = () => {
 
       // Reset form and reload
       cancelEditStudent();
-      loadStudents();
+      loadStudents(currentUserEmail);
       
       alert('Student updated successfully!');
     } catch (error: any) {
@@ -445,14 +756,16 @@ const AdminDashboardContent = () => {
   };
 
   const deleteStudent = async (student: any) => {
-    const studentName = student.email;
+    const studentName = getStudentDisplayName(student);
     if (!confirm(`Are you sure you want to delete student "${studentName}"? This will also delete all their materials and assignments.`)) {
       return;
     }
 
     try {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
+
       // Delete user via API route
-      const response = await fetch(`/api/admin/students/${student.id}`, {
+      const response = await fetch(`/api/admin/students/${student.id}?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'DELETE',
       });
 
@@ -471,7 +784,7 @@ const AdminDashboardContent = () => {
       }
 
       // Reload students list
-      loadStudents();
+      loadStudents(currentUserEmail);
       
       alert(`Student ${studentName} deleted successfully!`);
     } catch (error: any) {
@@ -482,6 +795,7 @@ const AdminDashboardContent = () => {
 
   const toggleLeaderboardOptIn = async (studentId: string, currentOptIn: boolean) => {
     try {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
       console.log(`Toggling leaderboard opt-in for ${studentId} from ${currentOptIn} to ${!currentOptIn}`);
       const response = await fetch(`/api/admin/students/${studentId}/leaderboard`, {
         method: 'PATCH',
@@ -489,7 +803,8 @@ const AdminDashboardContent = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          leaderboard_opt_in: !currentOptIn
+          leaderboard_opt_in: !currentOptIn,
+          userEmail
         }),
       });
 
@@ -514,6 +829,7 @@ const AdminDashboardContent = () => {
 
   const toggleAnalyticsOptIn = async (studentId: string, currentOptIn: boolean) => {
     try {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
       console.log(`Toggling analytics opt-in for ${studentId} from ${currentOptIn} to ${!currentOptIn}`);
       const response = await fetch(`/api/admin/students/${studentId}/analytics`, {
         method: 'PATCH',
@@ -521,7 +837,8 @@ const AdminDashboardContent = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          analytics_opt_in: !currentOptIn
+          analytics_opt_in: !currentOptIn,
+          userEmail
         }),
       });
 
@@ -551,8 +868,8 @@ const AdminDashboardContent = () => {
       // Get current user for API authentication
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user || user.email !== 'grantmatai@gmail.com') {
-        console.error('Not authenticated as admin user');
+      if (!user?.email) {
+        console.error('Not authenticated user');
         return;
       }
 
@@ -581,8 +898,9 @@ const AdminDashboardContent = () => {
     if (!studentId) return;
     
     try {
-      const userEmail = encodeURIComponent('grantmatai@gmail.com');
-      const response = await fetch(`/api/admin/assignments?studentId=${studentId}&userEmail=${userEmail}`);
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) return;
+      const response = await fetch(`/api/admin/assignments?studentId=${studentId}&userEmail=${encodeURIComponent(userEmail)}`);
       
       if (!response.ok) {
         throw new Error('Failed to load assignments');
@@ -606,8 +924,9 @@ const AdminDashboardContent = () => {
     if (!studentId) return;
     
     try {
-      const userEmail = encodeURIComponent('grantmatai@gmail.com');
-      const response = await fetch(`/api/admin/videos?studentId=${studentId}&userEmail=${userEmail}`);
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) return;
+      const response = await fetch(`/api/admin/videos?studentId=${studentId}&userEmail=${encodeURIComponent(userEmail)}`);
       
       if (!response.ok) {
         throw new Error('Failed to load videos');
@@ -643,8 +962,8 @@ const AdminDashboardContent = () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       console.log('Current user:', user?.email, 'Auth error:', authError);
       
-      if (!user || user.email !== 'grantmatai@gmail.com') {
-        throw new Error(`Authentication issue: Expected grantmatai@gmail.com, got ${user?.email || 'no user'}. Please refresh the page and log in again.`);
+      if (!user?.email) {
+        throw new Error('Authentication issue: Please refresh the page and log in again.');
       }
       
       console.log('Using admin API route for upload...');
@@ -703,8 +1022,9 @@ const AdminDashboardContent = () => {
     }
 
     try {
-      const userEmail = encodeURIComponent('grantmatai@gmail.com');
-      const response = await fetch(`/api/admin/assignments?userEmail=${userEmail}`, {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) return;
+      const response = await fetch(`/api/admin/assignments?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -764,8 +1084,9 @@ const AdminDashboardContent = () => {
     }
 
     try {
-      const userEmail = encodeURIComponent('grantmatai@gmail.com');
-      const response = await fetch(`/api/admin/assignments?userEmail=${userEmail}`, {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) return;
+      const response = await fetch(`/api/admin/assignments?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -818,8 +1139,9 @@ const AdminDashboardContent = () => {
     }
 
     try {
-      const userEmail = encodeURIComponent('grantmatai@gmail.com');
-      const response = await fetch(`/api/admin/materials/${materialId}?userEmail=${userEmail}`, {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) return;
+      const response = await fetch(`/api/admin/materials/${materialId}?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'DELETE'
       });
 
@@ -846,8 +1168,9 @@ const AdminDashboardContent = () => {
     }
 
     try {
-      const userEmail = encodeURIComponent('grantmatai@gmail.com');
-      const response = await fetch(`/api/admin/assignments/${assignmentId}?userEmail=${userEmail}`, {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) return;
+      const response = await fetch(`/api/admin/assignments/${assignmentId}?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'DELETE'
       });
 
@@ -883,8 +1206,9 @@ const AdminDashboardContent = () => {
     
     setAddingVideo(true);
     try {
-      const userEmail = encodeURIComponent('grantmatai@gmail.com');
-      const response = await fetch(`/api/admin/videos?userEmail=${userEmail}`, {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) return;
+      const response = await fetch(`/api/admin/videos?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -921,8 +1245,9 @@ const AdminDashboardContent = () => {
     if (!confirm('Are you sure you want to delete this video?')) return;
     
     try {
-      const userEmail = encodeURIComponent('grantmatai@gmail.com');
-      const response = await fetch(`/api/admin/videos?userEmail=${userEmail}&videoId=${videoId}`, {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) return;
+      const response = await fetch(`/api/admin/videos?userEmail=${encodeURIComponent(userEmail)}&videoId=${videoId}`, {
         method: 'DELETE',
       });
 
@@ -1234,8 +1559,41 @@ const AdminDashboardContent = () => {
     { id: 'messages', name: 'Messages', fullName: 'Messages', icon: ChatBubbleLeftRightIcon },
     { id: 'students', name: 'Students', fullName: 'Students', icon: AcademicCapIcon },
     { id: 'practice', name: 'Practice', fullName: 'Guitar Practice', icon: PlayIcon },
-    { id: 'analytics', name: 'Analytics', fullName: 'Practice Analytics', icon: ChartBarIcon }
+    { id: 'analytics', name: 'Analytics', fullName: 'Practice Analytics', icon: ChartBarIcon },
+    { id: 'teachers', name: 'Teachers', fullName: 'Teachers', icon: UserGroupIcon }
   ];
+
+  const visibleTabs = tabs.filter((tab) => {
+    if (currentUserEmail === 'grantmatai@gmail.com') {
+      return true;
+    }
+
+    if (tab.id === 'students') return true;
+    if (tab.id === 'teachers') return false;
+    if (tab.id === 'blog') return currentUserPermissions.can_manage_blog;
+    if (tab.id === 'music') return currentUserPermissions.can_upload_videos;
+    if (tab.id === 'messages') return currentUserPermissions.can_manage_messages;
+    if (tab.id === 'practice') return currentUserPermissions.can_assign_practice;
+    if (tab.id === 'analytics') return currentUserPermissions.can_view_analytics;
+
+    return false;
+  });
+
+  const isSuperAdmin = currentUserEmail === 'grantmatai@gmail.com';
+  const canManageStudents = isSuperAdmin || currentUserPermissions.can_manage_students;
+  const canViewBlogStats = isSuperAdmin || currentUserPermissions.can_manage_blog;
+  const canViewMessageStats = isSuperAdmin || currentUserPermissions.can_manage_messages;
+
+  useEffect(() => {
+    if (!visibleTabs.length) {
+      return;
+    }
+
+    const activeIsVisible = visibleTabs.some((tab) => tab.id === activeTab);
+    if (!activeIsVisible) {
+      handleTabChange(visibleTabs[0].id);
+    }
+  }, [activeTab, visibleTabs]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -1243,6 +1601,16 @@ const AdminDashboardContent = () => {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const getStudentDisplayName = (student: any) => {
+    const firstName = student.user_metadata?.first_name || student.first_name || '';
+    const lastName = student.user_metadata?.last_name || student.last_name || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    if (fullName) return fullName;
+    if (student.name && !String(student.name).includes('@')) return student.name;
+    const shortId = String(student.id || '').slice(0, 6);
+    return shortId ? `Student ${shortId}` : 'Student';
   };
 
   return (
@@ -1254,39 +1622,50 @@ const AdminDashboardContent = () => {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
-            <p className="text-white text-opacity-80">Manage your blog, music, and messages</p>
+            <h1 className="text-3xl font-bold text-white mb-2">{isSuperAdmin ? 'Admin Dashboard' : 'Teacher Dashboard'}</h1>
+            <p className="text-white text-opacity-80">
+              {isSuperAdmin ? 'Manage your blog, music, and messages' : 'Manage your assigned students and permitted tools'}
+            </p>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
-            <div className="rounded-2xl p-4 md:p-6" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
-              <div className="text-white text-opacity-60 text-xs md:text-sm">Total Posts</div>
-              <div className="text-white text-xl md:text-2xl font-bold">{stats.totalPosts}</div>
+          {(canViewBlogStats || canViewMessageStats) && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
+              {canViewBlogStats && (
+                <>
+                  <div className="rounded-2xl p-4 md:p-6" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
+                    <div className="text-white text-opacity-60 text-xs md:text-sm">Total Posts</div>
+                    <div className="text-white text-xl md:text-2xl font-bold">{stats.totalPosts}</div>
+                  </div>
+                  <div className="rounded-2xl p-4 md:p-6" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
+                    <div className="text-white text-opacity-60 text-xs md:text-sm">Published</div>
+                    <div className="text-white text-xl md:text-2xl font-bold">{stats.publishedPosts}</div>
+                  </div>
+                  <div className="rounded-2xl p-4 md:p-6" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
+                    <div className="text-white text-opacity-60 text-xs md:text-sm">Drafts</div>
+                    <div className="text-white text-xl md:text-2xl font-bold">{stats.draftPosts}</div>
+                  </div>
+                  <div className="rounded-2xl p-4 md:p-6" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
+                    <div className="text-white text-opacity-60 text-xs md:text-sm">Subscribers</div>
+                    <div className="text-white text-xl md:text-2xl font-bold">{stats.subscribers}</div>
+                  </div>
+                </>
+              )}
+
+              {canViewMessageStats && (
+                <div className="rounded-2xl p-4 md:p-6 col-span-2 md:col-span-1" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
+                  <div className="text-white text-opacity-60 text-xs md:text-sm">Unread Messages</div>
+                  <div className="text-white text-xl md:text-2xl font-bold text-orange-300">{stats.unreadMessages}</div>
+                </div>
+              )}
             </div>
-            <div className="rounded-2xl p-4 md:p-6" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
-              <div className="text-white text-opacity-60 text-xs md:text-sm">Published</div>
-              <div className="text-white text-xl md:text-2xl font-bold">{stats.publishedPosts}</div>
-            </div>
-            <div className="rounded-2xl p-4 md:p-6" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
-              <div className="text-white text-opacity-60 text-xs md:text-sm">Drafts</div>
-              <div className="text-white text-xl md:text-2xl font-bold">{stats.draftPosts}</div>
-            </div>
-            <div className="rounded-2xl p-4 md:p-6" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
-              <div className="text-white text-opacity-60 text-xs md:text-sm">Subscribers</div>
-              <div className="text-white text-xl md:text-2xl font-bold">{stats.subscribers}</div>
-            </div>
-            <div className="rounded-2xl p-4 md:p-6 col-span-2 md:col-span-1" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
-              <div className="text-white text-opacity-60 text-xs md:text-sm">Unread Messages</div>
-              <div className="text-white text-xl md:text-2xl font-bold text-orange-300">{stats.unreadMessages}</div>
-            </div>
-          </div>
+          )}
 
           {/* Tab Navigation */}
           <div className="rounded-2xl p-1 mb-8" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
             {/* Desktop Tab Navigation */}
             <nav className="hidden md:flex space-x-1">
-              {tabs.map((tab) => {
+              {visibleTabs.map((tab) => {
                 const Icon = tab.icon;
                 const unreadCount = tab.id === 'messages' ? messages.filter(m => !m.read).length : 0;
                 return (
@@ -1321,7 +1700,7 @@ const AdminDashboardContent = () => {
             <div className="md:hidden">
               {/* Mobile Tab Buttons - Horizontal Scroll */}
               <div className="flex space-x-1 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                {tabs.map((tab) => {
+                {visibleTabs.map((tab) => {
                   const Icon = tab.icon;
                   const unreadCount = tab.id === 'messages' ? messages.filter(m => !m.read).length : 0;
                   return (
@@ -2047,6 +2426,7 @@ const AdminDashboardContent = () => {
                 </div>
 
                 {/* Create New Student */}
+                {canManageStudents && (
                 <div className="mb-6 p-4 rounded-lg" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     <UserGroupIcon className="h-5 w-5 mr-2" />
@@ -2125,26 +2505,32 @@ const AdminDashboardContent = () => {
                     </button>
                   </div>
                 </div>
+                )}
 
                 {/* Students List */}
                 <div className="mb-6 p-4 rounded-lg" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     <UserGroupIcon className="h-5 w-5 mr-2" />
-                    All Students ({students.length})
+                    {isSuperAdmin ? `All Students (${students.length})` : `Assigned Students (${students.length})`}
                   </h3>
                   
                   {students.length === 0 ? (
-                    <p className="text-gray-500 text-center py-4">No students yet. Create your first student above!</p>
+                    <p className="text-gray-500 text-center py-4">No accessible students found.</p>
                   ) : (
                     <div className="space-y-3">
-                      {students.map((student) => (
+                      {students.map((student) => {
+                        const isOwnProfile = student.id === currentUserId;
+                        const canEditStudentProfile = isOwnProfile || canManageStudents;
+                        const canDeleteStudentProfile = canManageStudents && !isOwnProfile;
+
+                        return (
                         <div
                           key={student.id}
                           className="p-3 bg-gray-50 rounded-lg border"
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div className="flex-1">
-                              <h4 className="text-gray-800 font-medium">{student.email}</h4>
+                              <h4 className="text-gray-800 font-medium">{getStudentDisplayName(student)}</h4>
                               <div className="text-sm text-gray-600">
                                 {student.user_metadata?.first_name && student.user_metadata?.last_name ? (
                                   <span>{student.user_metadata.first_name} {student.user_metadata.last_name}</span>
@@ -2160,6 +2546,7 @@ const AdminDashboardContent = () => {
                                   type="checkbox"
                                   checked={studentOptIns.get(student.id) || false}
                                   onChange={() => toggleLeaderboardOptIn(student.id, studentOptIns.get(student.id) || false)}
+                                  disabled={!canEditStudentProfile}
                                   className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
                                 />
                                 <span className="ml-2 text-sm text-gray-700">
@@ -2176,6 +2563,7 @@ const AdminDashboardContent = () => {
                                   type="checkbox"
                                   checked={studentAnalyticsOptIns.get(student.id) || false}
                                   onChange={() => toggleAnalyticsOptIn(student.id, studentAnalyticsOptIns.get(student.id) || false)}
+                                  disabled={!canEditStudentProfile}
                                   className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                 />
                                 <span className="ml-2 text-sm text-gray-700">
@@ -2200,20 +2588,22 @@ const AdminDashboardContent = () => {
                               </button>
                               <button
                                 onClick={() => startEditStudent(student)}
-                                className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+                                disabled={!canEditStudentProfile}
+                                className="p-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                               >
                                 <PencilIcon className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => deleteStudent(student)}
-                                className="p-2 text-red-600 hover:text-red-800 transition-colors"
+                                disabled={!canDeleteStudentProfile}
+                                className="p-2 text-red-600 hover:text-red-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                               >
                                 <TrashIcon className="w-4 h-4" />
                               </button>
                             </div>
                           </div>
                         </div>
-                      ))}
+                      )})}
                     </div>
                   )}
                 </div>
@@ -2231,8 +2621,7 @@ const AdminDashboardContent = () => {
                     <option value="">Choose a student...</option>
                     {students.map((student) => (
                       <option key={student.id} value={student.id}>
-                        {student.email} {student.user_metadata?.first_name && student.user_metadata?.last_name && 
-                          `(${student.user_metadata.first_name} ${student.user_metadata.last_name})`}
+                        {getStudentDisplayName(student)}
                       </option>
                     ))}
                   </select>
@@ -2505,6 +2894,280 @@ const AdminDashboardContent = () => {
             {/* Analytics Tab Content */}
             {activeTab === 'analytics' && (
               <PracticeAnalytics />
+            )}
+
+            {/* Teachers Tab Content */}
+            {activeTab === 'teachers' && (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold text-gray-800">Teacher Management</h2>
+                  <div className="text-sm text-gray-600">
+                    Total Teachers: {teachers.length}
+                  </div>
+                </div>
+
+                {/* Promote Student to Teacher */}
+                <div className="mb-8 p-6 rounded-lg border-2 border-green-200" style={{backgroundColor: 'rgba(255,255,255,0.9)'}}>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Promote Student to Teacher</h3>
+                  
+                  {/* Student Selection */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Student to Promote
+                    </label>
+                    <select
+                      value={selectedStudentForPromotion}
+                      onChange={(e) => setSelectedStudentForPromotion(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    >
+                      <option value="">Choose a student...</option>
+                      {allStudents.filter(student => 
+                        !teachers.some(teacher => teacher.email === student.email)
+                      ).map((student) => (
+                        <option key={student.id} value={student.id}>
+                          {getStudentDisplayName(student)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Permissions */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Teacher Permissions
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {Object.entries(teacherPermissions).map(([key, value]) => (
+                        <label key={key} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={value}
+                            onChange={(e) => setTeacherPermissions(prev => ({
+                              ...prev,
+                              [key]: e.target.checked
+                            }))}
+                            className="mr-2 rounded focus:ring-green-500"
+                          />
+                          <span className="text-sm text-gray-700">
+                            {key.replace('can_', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={promoteStudentToTeacher}
+                    disabled={!selectedStudentForPromotion}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Promote to Teacher
+                  </button>
+                </div>
+
+                {/* Teachers List */}
+                <div className="space-y-4">
+                  {loadingTeachers ? (
+                    <div className="text-center py-8 text-gray-600">Loading teachers...</div>
+                  ) : teachers.length === 0 ? (
+                    <div className="text-center py-8 text-gray-600">
+                      No teachers yet. Promote a student to get started!
+                    </div>
+                  ) : (
+                    teachers.map((teacher) => (
+                      <div
+                        key={teacher.id}
+                        className="p-6 rounded-lg border border-gray-200"
+                        style={{backgroundColor: 'rgba(255,255,255,0.9)'}}
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-800">
+                              {teacher.student?.name || teacher.email}
+                              {teacher.email === 'grantmatai@gmail.com' && (
+                                <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                                  Super Admin
+                                </span>
+                              )}
+                            </h3>
+                            <p className="text-sm text-gray-600">{teacher.email}</p>
+                            <p className="text-xs text-gray-500">
+                              Created: {formatDate(teacher.created_at)}
+                            </p>
+                          </div>
+                          <div className="flex space-x-2">
+                            {teacher.email !== 'grantmatai@gmail.com' && (
+                              <>
+                                <button
+                                  onClick={() => setSelectedTeacherForEdit(teacher)}
+                                  className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200"
+                                >
+                                  Edit Permissions
+                                </button>
+                                <button
+                                  onClick={() => demoteTeacher(teacher.id, teacher.email)}
+                                  className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200"
+                                >
+                                  Demote
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Current Permissions */}
+                        <div className="mb-4">
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Permissions:</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(teacher.permissions).map(([key, value]) => (
+                              <span
+                                key={key}
+                                className={`px-2 py-1 text-xs rounded-full ${
+                                  value 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-gray-100 text-gray-600'
+                                }`}
+                              >
+                                {key.replace('can_', '').replace('_', ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Assigned Students */}
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">
+                            Assigned Students ({teacher.assignedStudents?.length || 0}):
+                          </h4>
+                          {teacher.assignedStudents && teacher.assignedStudents.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {teacher.assignedStudents.map((student: any) => (
+                                <span
+                                  key={student.id}
+                                  className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                                >
+                                  {getStudentDisplayName(student)}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-500">No students assigned</p>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Edit Teacher Permissions Modal */}
+                {selectedTeacherForEdit && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                      <div className="p-6">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            Edit Permissions: {selectedTeacherForEdit.email}
+                          </h3>
+                          <button
+                            onClick={() => setSelectedTeacherForEdit(null)}
+                            className="p-2 text-gray-400 hover:text-gray-600"
+                          >
+                            <XMarkIcon className="w-5 h-5" />
+                          </button>
+                        </div>
+
+                        {/* Permissions Grid */}
+                        <div className="mb-6">
+                          <h4 className="text-sm font-medium text-gray-700 mb-3">Permissions</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {Object.entries(selectedTeacherForEdit.permissions).map(([key, value]) => (
+                              <label key={key} className="flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50">
+                                <input
+                                  type="checkbox"
+                                  checked={value}
+                                  onChange={(e) => setSelectedTeacherForEdit(prev => ({
+                                    ...prev,
+                                    permissions: {
+                                      ...prev.permissions,
+                                      [key]: e.target.checked
+                                    }
+                                  }))}
+                                  className="mr-3 rounded focus:ring-green-500"
+                                />
+                                <div>
+                                  <span className="font-medium text-gray-800">
+                                    {key.replace('can_', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                  </span>
+                                  <p className="text-xs text-gray-600">
+                                    {key === 'can_manage_blog' && 'Create and edit blog posts'}
+                                    {key === 'can_manage_materials' && 'Upload and manage student materials'}
+                                    {key === 'can_assign_practice' && 'Create practice assignments for students'}
+                                    {key === 'can_view_analytics' && 'View student practice analytics'}
+                                    {key === 'can_manage_students' && 'Add and remove students'}
+                                    {key === 'can_upload_videos' && 'Manage music videos'}
+                                  </p>
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Student Assignments */}
+                        <div className="mb-6">
+                          <h4 className="text-sm font-medium text-gray-700 mb-3">Assign Students</h4>
+                          <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+                            {allStudents.map((student) => (
+                              <label key={student.id} className="flex items-center p-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
+                                <input
+                                  type="checkbox"
+                                  checked={teacherStudentAssignments.includes(student.id) || 
+                                          selectedTeacherForEdit.assignedStudents?.some((s: any) => s.id === student.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setTeacherStudentAssignments(prev => [...prev, student.id]);
+                                    } else {
+                                      setTeacherStudentAssignments(prev => prev.filter(id => id !== student.id));
+                                    }
+                                  }}
+                                  className="mr-3 rounded focus:ring-green-500"
+                                />
+                                <div>
+                                  <span className="font-medium text-gray-800">{getStudentDisplayName(student)}</span>
+                                  {student.assigned_teacher_id && student.assigned_teacher_id !== selectedTeacherForEdit.id && (
+                                    <p className="text-xs text-orange-600">Currently assigned to another teacher</p>
+                                  )}
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex space-x-3">
+                          <button
+                            onClick={() => updateTeacherPermissions(selectedTeacherForEdit.id)}
+                            className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                          >
+                            Update Permissions
+                          </button>
+                          <button
+                            onClick={() => updateStudentAssignments(selectedTeacherForEdit.id)}
+                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                          >
+                            Update Assignments
+                          </button>
+                          <button
+                            onClick={() => setSelectedTeacherForEdit(null)}
+                            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

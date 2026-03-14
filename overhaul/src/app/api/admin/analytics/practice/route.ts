@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { getAccessibleStudentIds, resolveActorContext } from '../../_utils/teacherAuth';
 
 // Initialize Supabase with service role for admin operations
 const supabaseAdmin = createClient(
@@ -16,7 +17,6 @@ const supabaseAdmin = createClient(
 interface PracticeAnalyticsRecord {
   student_id: string;
   student_name: string;
-  email: string;
   month: number;
   year: number;
   practice_days: number;
@@ -25,6 +25,24 @@ interface PracticeAnalyticsRecord {
 export async function GET(request: NextRequest) {
   try {
     console.log('Fetching analytics data...');
+
+    const userEmail = request.nextUrl.searchParams.get('userEmail');
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Teacher access required' },
+        { status: 403 }
+      );
+    }
+
+    if (!actor.isSuperAdmin && !actor.permissions.can_view_analytics) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Analytics permission required' },
+        { status: 403 }
+      );
+    }
+
+    const accessibleStudentIds = await getAccessibleStudentIds(actor);
     
     // Fetch all habit records
     const { data: habits, error: habitsError } = await supabaseAdmin
@@ -70,7 +88,9 @@ export async function GET(request: NextRequest) {
     console.log('Students opted into analytics:', optedInStudentIds.size);
 
     // Filter habits to only include opted-in students
-    const filteredHabits = habits.filter(habit => optedInStudentIds.has(habit.student_id));
+    const filteredHabits = habits.filter(
+      (habit) => optedInStudentIds.has(habit.student_id) && accessibleStudentIds.has(habit.student_id)
+    );
     console.log('Filtered habits count:', filteredHabits.length);
 
     if (filteredHabits.length === 0) {
@@ -100,8 +120,7 @@ export async function GET(request: NextRequest) {
         user.id,
         {
           first_name: user.user_metadata?.first_name || '',
-          last_name: user.user_metadata?.last_name || '',
-          email: user.email || ''
+          last_name: user.user_metadata?.last_name || ''
         }
       ])
     );
@@ -146,12 +165,11 @@ export async function GET(request: NextRequest) {
         return; // Skip if user not found
       }
 
-      const studentName = `${user.first_name} ${user.last_name}`.trim() || user.email;
+      const studentName = `${user.first_name} ${user.last_name}`.trim() || `Student ${studentId.slice(0, 6)}`;
 
       analytics.push({
         student_id: studentId,
         student_name: studentName,
-        email: user.email,
         month: parseInt(monthStr),
         year: parseInt(yearStr),
         practice_days: dates.size

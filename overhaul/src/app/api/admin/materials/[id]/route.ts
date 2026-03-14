@@ -1,17 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Create admin client with service role key (server-side only)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import { canAccessStudent, resolveActorContext, supabaseAdmin } from '../../_utils/teacherAuth';
 
 // DELETE - Delete a material
 export async function DELETE(
@@ -22,9 +10,13 @@ export async function DELETE(
     const { searchParams } = new URL(request.url);
     const userEmail = searchParams.get('userEmail');
 
-    // Verify admin access
-    if (userEmail !== 'grantmatai@gmail.com') {
+    const actor = await resolveActorContext(userEmail);
+    if (!actor) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    if (!actor.isSuperAdmin && !actor.permissions.can_manage_materials) {
+      return NextResponse.json({ error: 'Unauthorized - Material management permission required' }, { status: 403 });
     }
 
     const materialId = params.id;
@@ -32,13 +24,18 @@ export async function DELETE(
     // First get the material to find the file path
     const { data: material, error: fetchError } = await supabaseAdmin
       .from('student_materials')
-      .select('file_path')
+      .select('file_path, student_id')
       .eq('id', materialId)
       .single();
 
     if (fetchError) {
       console.error('Error fetching material:', fetchError);
       return NextResponse.json({ error: fetchError.message }, { status: 400 });
+    }
+
+    const hasAccess = await canAccessStudent(actor, material.student_id);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Unauthorized - You can only delete materials for assigned students' }, { status: 403 });
     }
 
     // Delete from storage

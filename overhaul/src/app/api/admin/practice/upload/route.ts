@@ -1,11 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
+import { resolveActorContext, supabaseAdmin } from '../../_utils/teacherAuth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,8 +7,8 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File;
     const userEmail = formData.get('userEmail') as string;
 
-    // Verify admin access
-    if (userEmail !== process.env.NEXT_PUBLIC_BLOG_ADMIN_EMAIL) {
+    const actor = await resolveActorContext(userEmail);
+    if (!actor || !actor.isSuperAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

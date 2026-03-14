@@ -6,7 +6,6 @@ interface LeaderboardEntry {
   student_id: string;
   first_name: string;
   last_name: string;
-  email: string;
   practice_days: number;
 }
 
@@ -183,7 +182,7 @@ export default function GuitarLeaderboard({ studentId }: GuitarLeaderboardProps)
           {displayData.map((entry) => {
             const trophy = getTrophyIcon(entry.rank);
             const isCurrentUser = entry.student_id === studentId;
-            const displayName = `${entry.first_name} ${entry.last_name}`.trim() || entry.email;
+            const displayName = `${entry.first_name} ${entry.last_name}`.trim() || `Student ${entry.student_id.slice(0, 6)}`;
 
             return (
               <div
