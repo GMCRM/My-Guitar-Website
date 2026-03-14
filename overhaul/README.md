@@ -25,6 +25,7 @@ A modern, responsive website for guitar teachers featuring blog management, stud
 ## 🌐 Deployment to GitHub Pages
 
 ### Step 1: Repository Setup
+
 ```bash
 git add .
 git commit -m "Initial commit"
@@ -32,21 +33,24 @@ git push origin main
 ```
 
 ### Step 2: Configure GitHub Secrets
+
 Go to your repository settings → Secrets and Variables → Actions, and add:
 
 - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous key  
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous key
 - `NEXT_PUBLIC_BLOG_ADMIN_EMAIL`: Your admin email
 - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key
 - `EMAIL_USER`: Your Gmail address
 - `EMAIL_PASS`: Your Gmail app password
 
 ### Step 3: Enable GitHub Pages
+
 1. Go to repository Settings → Pages
 2. Source: GitHub Actions
 3. The workflow will automatically deploy on pushes
 
 ### Step 4: Access Your Site
+
 Your site will be available at: `https://yourusername.github.io/My-Guitar-Website/`
 
 ## 🚀 Local Development
@@ -88,6 +92,7 @@ src/
 ## 🔐 Admin Features
 
 Access the admin panel at `/admin`:
+
 - Blog post management with rich text editor
 - Student management and assignments
 - Contact message tracking
@@ -110,13 +115,16 @@ Access the admin panel at `/admin`:
 ## 🔧 Configuration
 
 ### Database Setup
+
 Run the SQL files in the project root in your Supabase dashboard:
+
 - `create_contact_messages_table.sql`
 - `create_materials_table.sql`
 - `student_management_setup.sql`
 - `create_music_videos_table.sql`
 
 ### Email Configuration
+
 1. Enable 2-factor authentication on Gmail
 2. Generate an App Password
 3. Add credentials to environment variables
@@ -124,11 +132,13 @@ Run the SQL files in the project root in your Supabase dashboard:
 ## 🐛 Troubleshooting
 
 ### Build Issues
+
 - Verify all environment variables are set
 - Check Supabase connection
 - Ensure database tables exist
 
 ### Deployment Issues
+
 - Confirm GitHub secrets are configured
 - Check GitHub Actions logs for errors
 - Verify static export settings

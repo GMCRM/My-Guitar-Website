@@ -79,6 +79,7 @@ const AdminDashboardContent = () => {
   });
   const [currentUserEmail, setCurrentUserEmail] = useState('');
   const [currentUserId, setCurrentUserId] = useState('');
+  const [accessResolved, setAccessResolved] = useState(false);
 
   const defaultPermissions: TeacherPermissions = {
     can_manage_blog: false,
@@ -180,6 +181,7 @@ const AdminDashboardContent = () => {
       setCurrentUserEmail('');
       setCurrentUserId('');
       setCurrentUserPermissions(defaultPermissions);
+      setAccessResolved(true);
       return { email: '', permissions: defaultPermissions, isSuperAdmin: false };
     }
 
@@ -197,6 +199,7 @@ const AdminDashboardContent = () => {
         can_manage_messages: true
       };
       setCurrentUserPermissions(superAdminPermissions);
+      setAccessResolved(true);
       return { email: user.email, permissions: superAdminPermissions, isSuperAdmin: true };
     }
 
@@ -218,6 +221,7 @@ const AdminDashboardContent = () => {
     };
 
     setCurrentUserPermissions(normalizedPermissions);
+    setAccessResolved(true);
     return { email: user.email, permissions: normalizedPermissions, isSuperAdmin: false };
   };
 
@@ -1626,6 +1630,10 @@ const AdminDashboardContent = () => {
   const canViewMessageStats = isSuperAdmin || currentUserPermissions.can_manage_messages;
 
   useEffect(() => {
+    if (!accessResolved) {
+      return;
+    }
+
     if (!visibleTabs.length) {
       return;
     }
@@ -1634,7 +1642,7 @@ const AdminDashboardContent = () => {
     if (!activeIsVisible) {
       handleTabChange(visibleTabs[0].id);
     }
-  }, [activeTab, visibleTabs]);
+  }, [activeTab, visibleTabs, accessResolved]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
