@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Bars3Icon, XMarkIcon, UserIcon, CogIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -14,6 +15,7 @@ const navigation = [
 ];
 
 export default function Navigation() {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [hasTeacherAccess, setHasTeacherAccess] = useState(false);
@@ -70,6 +72,7 @@ export default function Navigation() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    router.push('/');
   };
 
   const handleSignIn = () => {

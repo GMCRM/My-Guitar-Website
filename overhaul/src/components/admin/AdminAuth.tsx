@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 
@@ -9,6 +10,7 @@ interface AdminAuthProps {
 }
 
 const AdminAuth = ({ children }: AdminAuthProps) => {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
@@ -74,6 +76,12 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/');
+    }
+  }, [loading, user, router]);
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSigningIn(true);
@@ -121,6 +129,8 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
       </div>
     );
   }
+
+  if (!user) return null;
 
   // Check if user has teacher access
   const hasAccess = user && isTeacher;

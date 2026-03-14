@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import {
   DocumentTextIcon,
   DocumentArrowDownIcon,
@@ -49,6 +50,7 @@ const GUITAR_STRINGS = [
 ];
 
 const StudentPortal = () => {
+  const router = useRouter();
   const [materials, setMaterials] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
@@ -1278,6 +1280,12 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
     return shortId ? `Student ${shortId}` : 'Student';
   };
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/');
+    }
+  }, [loading, user, router]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#87AA6A'}}>
@@ -1286,20 +1294,7 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
     );
   }
 
-  if (!user) {
-    return (
-      <>
-        <Navigation />
-        <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#87AA6A'}}>
-          <div className="text-center text-white">
-            <AcademicCapIcon className="h-16 w-16 mx-auto mb-4 opacity-80" />
-            <h1 className="text-2xl font-bold mb-4">Student Portal</h1>
-            <p className="text-lg mb-8">Please sign in to access your materials and assignments.</p>
-          </div>
-        </div>
-      </>
-    );
-  }
+  if (!user) return null;
 
   return (
     <>
