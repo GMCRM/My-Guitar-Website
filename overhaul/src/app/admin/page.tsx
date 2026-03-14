@@ -436,7 +436,7 @@ const AdminDashboardContent = () => {
     }
 
     if (permissions.can_manage_messages) {
-      loadMessages();
+      loadMessages(email);
     }
 
     loadStudents(email);
@@ -568,9 +568,9 @@ const AdminDashboardContent = () => {
     }
   };
 
-  const loadMessages = async () => {
+  const loadMessages = async (emailOverride?: string) => {
     try {
-      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
+      const userEmail = emailOverride || currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
       const response = await fetch(`/api/contact?userEmail=${encodeURIComponent(userEmail)}`);
       if (response.ok) {
         const data = await response.json();

@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import nodemailer from 'nodemailer';
 import { resolveActorContext } from '../admin/_utils/teacherAuth';
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
 
 // Create email transporter
 const createTransporter = () => {
@@ -174,58 +186,30 @@ export async function POST(request: NextRequest) {
 
     console.log('Email notification result:', emailResult);
 
-    // Save to database
-    try {
-      const cookieStore = await cookies();
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            getAll() {
-              return cookieStore.getAll();
-            },
-            setAll(cookiesToSet) {
-              try {
-                cookiesToSet.forEach(({ name, value, options }) =>
-                  cookieStore.set(name, value, options)
-                );
-              } catch {
-                // The `setAll` method was called from a Server Component.
-                // This can be ignored if you have middleware refreshing
-                // user sessions.
-              }
-            },
-          },
-        }
+    // Save to database (service role ensures inserts succeed regardless of public/session auth state)
+    const { data, error } = await supabaseAdmin
+      .from('contact_messages')
+      .insert({
+        name: name.trim(),
+        email: email?.trim() || null,
+        phone: phone?.trim() || null,
+        subject: subject?.trim() || 'General Inquiry',
+        message: message.trim(),
+        type: 'contact',
+        status: 'unread'
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('Database save failed:', error);
+      return NextResponse.json(
+        { error: 'Failed to save your message. Please try again.' },
+        { status: 500 }
       );
-
-      const { data, error } = await supabase
-        .from('contact_messages')
-        .insert({
-          name: name.trim(),
-          email: email?.trim() || null,
-          phone: phone?.trim() || null,
-          subject: subject?.trim() || 'General Inquiry',
-          message: message.trim(),
-          type: 'contact',
-          status: 'unread'
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Database save failed:', error.message);
-        // Don't fail the entire request if email was sent successfully
-        // but log the error for debugging
-        console.error('Full database error:', error);
-      } else {
-        console.log('Message saved to database with ID:', data.id);
-      }
-    } catch (dbError) {
-      console.error('Database connection failed:', dbError);
-      // Don't fail the entire request, but log for debugging
     }
+
+    console.log('Message saved to database with ID:', data.id);
 
     return NextResponse.json(
       { 
@@ -280,7 +264,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all contact messages, newest first
-    const { data: messages, error } = await supabase
+    const { data: messages, error } = await supabaseAdmin
       .from('contact_messages')
       .select('*')
       .order('created_at', { ascending: false });
@@ -348,7 +332,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update message status
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('contact_messages')
       .update({ status })
       .eq('id', id);
@@ -416,7 +400,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete the message
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('contact_messages')
       .delete()
       .eq('id', id);
