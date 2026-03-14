@@ -33,6 +33,16 @@ import StudentPracticeAssignment from '@/components/admin/StudentPracticeAssignm
 import PracticeAnalytics from '@/components/admin/PracticeAnalytics';
 import { supabase, BlogPost, TeacherPermissions } from '@/lib/supabase';
 
+interface MusicVideo {
+  dbId: number;
+  id: string;
+  title: string;
+  author: string;
+  thumbnail: string | null;
+  addedDate: string;
+  order: number;
+}
+
 const AdminDashboardContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,7 +95,7 @@ const AdminDashboardContent = () => {
   // YouTube Videos State
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [addingMusicVideo, setAddingMusicVideo] = useState(false);
-  const [videoList, setVideoList] = useState<any[]>([]);
+  const [videoList, setVideoList] = useState<MusicVideo[]>([]);
 
   // Messages State
   const [messages, setMessages] = useState<any[]>([]);
@@ -418,7 +428,7 @@ const AdminDashboardContent = () => {
     }
 
     if (permissions.can_upload_videos) {
-      loadVideoList();
+      loadVideoList(email);
     }
 
     if (permissions.can_manage_messages) {
@@ -522,42 +532,32 @@ const AdminDashboardContent = () => {
     }
   };
 
-  const loadVideoList = () => {
+  const loadVideoList = async (emailOverride?: string) => {
     try {
-      // Ensure we're in the browser environment
-      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-        const savedVideos = localStorage.getItem('musicVideos');
-        
-        if (savedVideos) {
-          try {
-            const parsedVideos = JSON.parse(savedVideos);
-            
-            // Validate that it's an array
-            if (Array.isArray(parsedVideos)) {
-              // Add order property to existing videos that don't have it
-              const videosWithOrder = parsedVideos.map((video, index) => ({
-                ...video,
-                order: video.order !== undefined ? video.order : index
-              }));
-              
-              // Sort by order to ensure correct display
-              videosWithOrder.sort((a, b) => (a.order || 0) - (b.order || 0));
-              
-              setVideoList(videosWithOrder);
-            } else {
-              console.error('Invalid video data format:', parsedVideos);
-              setVideoList([]);
-            }
-          } catch (parseError) {
-            console.error('Error parsing videos from localStorage:', parseError);
-            setVideoList([]);
-          }
-        } else {
-          setVideoList([]);
-        }
-      } else {
+      const userEmail = emailOverride || currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) {
         setVideoList([]);
+        return;
       }
+
+      const response = await fetch(`/api/admin/music-videos?userEmail=${encodeURIComponent(userEmail)}`);
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Failed to load videos');
+      }
+
+      const normalizedVideos: MusicVideo[] = (result.data || []).map((video: any, index: number) => ({
+        dbId: video.id,
+        id: video.youtube_id,
+        title: video.title,
+        author: video.author_name || 'Grant Matai Cross',
+        thumbnail: video.thumbnail_url || null,
+        addedDate: video.created_at,
+        order: video.display_order ?? index
+      }));
+
+      setVideoList(normalizedVideos);
     } catch (error) {
       console.error('Error in loadVideoList:', error);
       setVideoList([]);
@@ -1273,62 +1273,67 @@ const AdminDashboardContent = () => {
     }
   };
 
-  const extractVideoId = (url: string) => {
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
-    return match ? match[1] : null;
-  };
-
   const addYouTubeVideo = async () => {
     if (!youtubeUrl) return;
 
     setAddingMusicVideo(true);
-    const videoId = extractVideoId(youtubeUrl);
-    
-    if (!videoId) {
-      alert('Please enter a valid YouTube URL');
-      setAddingMusicVideo(false);
-      return;
-    }
 
     try {
-      // Fetch video data from YouTube API
-      const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-      const data = await response.json();
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) {
+        throw new Error('Not authenticated');
+      }
 
-      const newVideo = {
-        id: videoId,
-        title: data.title || `Video ${videoId}`,
-        author: data.author_name || 'Grant Matai Cross',
-        thumbnail: data.thumbnail_url,
-        addedDate: new Date().toISOString(),
-        order: videoList.length // Add to end of list
-      };
+      const response = await fetch(`/api/admin/music-videos?userEmail=${encodeURIComponent(userEmail)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          youtubeUrl: youtubeUrl.trim()
+        })
+      });
 
-      const updatedVideos = [...videoList, newVideo];
-      setVideoList(updatedVideos);
-      localStorage.setItem('musicVideos', JSON.stringify(updatedVideos));
+      const result = await response.json();
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Failed to add video');
+      }
+
       setYoutubeUrl('');
+      await loadVideoList(userEmail);
     } catch (error) {
       console.error('Error adding video:', error);
-      alert('Error adding video. Please try again.');
+      alert(error instanceof Error ? error.message : 'Error adding video. Please try again.');
     } finally {
       setAddingMusicVideo(false);
     }
   };
 
-  const removeVideo = (videoId: string) => {
-    const updatedVideos = videoList.filter(v => v.id !== videoId);
-    // Reorder the remaining videos
-    const reorderedVideos = updatedVideos.map((video, index) => ({
-      ...video,
-      order: index
-    }));
-    setVideoList(reorderedVideos);
-    localStorage.setItem('musicVideos', JSON.stringify(reorderedVideos));
+  const removeVideo = async (videoId: number) => {
+    try {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`/api/admin/music-videos?userEmail=${encodeURIComponent(userEmail)}&videoId=${videoId}`, {
+        method: 'DELETE'
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Failed to delete video');
+      }
+
+      await loadVideoList(userEmail);
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      alert(error instanceof Error ? error.message : 'Error deleting video. Please try again.');
+    }
   };
 
-  const moveVideo = (videoId: string, direction: 'up' | 'down') => {
-    const videoIndex = videoList.findIndex(v => v.id === videoId);
+  const moveVideo = async (videoId: number, direction: 'up' | 'down') => {
+    const videoIndex = videoList.findIndex(v => v.dbId === videoId);
     if (videoIndex === -1) return;
 
     const newIndex = direction === 'up' ? videoIndex - 1 : videoIndex + 1;
@@ -1345,7 +1350,34 @@ const AdminDashboardContent = () => {
     }));
 
     setVideoList(reorderedVideos);
-    localStorage.setItem('musicVideos', JSON.stringify(reorderedVideos));
+
+    try {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`/api/admin/music-videos?userEmail=${encodeURIComponent(userEmail)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          orderedVideoIds: reorderedVideos.map((video) => video.dbId)
+        })
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Failed to reorder videos');
+      }
+
+      await loadVideoList(userEmail);
+    } catch (error) {
+      console.error('Error reordering videos:', error);
+      alert(error instanceof Error ? error.message : 'Error reordering videos. Please try again.');
+      loadVideoList();
+    }
   };
 
   const markMessageAsRead = async (messageId: string) => {
@@ -2131,7 +2163,7 @@ const AdminDashboardContent = () => {
                   ) : (
                     videoList.map((video, index) => (
                       <div
-                        key={video.id}
+                        key={video.dbId}
                         className="flex items-center justify-between p-4 rounded-lg border border-gray-200"
                         style={{backgroundColor: 'rgba(255,255,255,0.9)'}}
                       >
@@ -2141,7 +2173,7 @@ const AdminDashboardContent = () => {
                             <div className="text-xs text-gray-500 font-medium">#{index + 1}</div>
                             <div className="flex flex-col space-y-1">
                               <button
-                                onClick={() => moveVideo(video.id, 'up')}
+                                onClick={() => moveVideo(video.dbId, 'up')}
                                 disabled={index === 0}
                                 className={`p-1 rounded ${
                                   index === 0 
@@ -2153,7 +2185,7 @@ const AdminDashboardContent = () => {
                                 <ChevronUpIcon className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => moveVideo(video.id, 'down')}
+                                onClick={() => moveVideo(video.dbId, 'down')}
                                 disabled={index === videoList.length - 1}
                                 className={`p-1 rounded ${
                                   index === videoList.length - 1 
@@ -2191,7 +2223,7 @@ const AdminDashboardContent = () => {
                             <PlayIcon className="w-4 h-4" />
                           </a>
                           <button
-                            onClick={() => removeVideo(video.id)}
+                            onClick={() => removeVideo(video.dbId)}
                             className="p-2 text-red-600 hover:text-red-800 transition-colors"
                             title="Remove video"
                           >

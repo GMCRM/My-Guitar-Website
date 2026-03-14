@@ -25,27 +25,6 @@ declare global {
 }
 
 // Your actual YouTube videos - titles and descriptions will be fetched from YouTube
-// Default videos (fallback if no admin videos are set)
-const defaultVideos = [
-  {
-    id: 'zMhW5jhYZFc',
-  },
-  {
-    id: 'FWxhf2dS9Ok',
-  },
-  {
-    id: 'sPEJJsie9uw',
-  },
-  {
-    id: 'lhp1xiS4KCs',
-  },
-  {
-    id: 'oxnfHQEpiBg',
-  },
-  {
-    id: 'SvrlmXpbp9s',
-  },
-];
 
 interface VideoData {
   title: string;
@@ -545,99 +524,33 @@ const MusicPlayer = ({ videos }: { videos: Video[] }) => {
 };
 
 export default function MusicPage() {
-  const [allVideos, setAllVideos] = useState<Video[]>(defaultVideos);
+  const [allVideos, setAllVideos] = useState<Video[]>([]);
+  const [loadingVideos, setLoadingVideos] = useState(true);
 
   useEffect(() => {
-    // Debug function - only available in browser
-    if (typeof window !== 'undefined') {
-      (window as any).debugMusicPage = () => {
-        console.log('=== Music Page Debug Info ===');
-        console.log('Current videos:', allVideos);
-        console.log('localStorage musicVideos:', localStorage.getItem('musicVideos'));
-        console.log('Default videos:', defaultVideos);
-        
-        // Clear cache and reload
-        localStorage.removeItem('musicVideos');
-        console.log('Cleared localStorage cache');
-        window.location.reload();
-      };
-    }
-  }, [allVideos]);
-
-  useEffect(() => {
-    // Load videos from admin panel (localStorage) or use defaults
-    const savedVideos = localStorage.getItem('musicVideos');
-    if (savedVideos !== null) {
-      // localStorage exists (could be empty array or have videos)
+    const loadMusicVideos = async () => {
       try {
-        const adminVideos = JSON.parse(savedVideos);
-        // Validate that adminVideos is an array
-        if (Array.isArray(adminVideos)) {
-          if (adminVideos.length > 0) {
-            // Sort videos by order property (ascending) 
-            const sortedVideos = adminVideos.sort((a: any, b: any) => {
-              return (a.order || 0) - (b.order || 0);
-            });
-            
-            // Convert admin video format to player format and filter out invalid entries
-            const playerVideos = sortedVideos
-              .map((video: any) => ({ id: video.id }))
-              .filter(video => video.id && typeof video.id === 'string');
-            
-            if (playerVideos.length > 0) {
-              setAllVideos(playerVideos);
-            } else {
-              // Admin videos exist but are invalid, clear them and show empty
-              localStorage.setItem('musicVideos', JSON.stringify([]));
-              setAllVideos([]);
-            }
-          } else {
-            // Admin has explicitly cleared all videos (empty array)
-            setAllVideos([]);
-          }
-        } else {
-          console.log('Invalid video data format in localStorage, clearing and using defaults');
-          // Invalid format, reset to defaults
-          setAllVideos(defaultVideos);
-          const defaultAdminVideos = defaultVideos.map((video, index) => ({
-            id: video.id,
-            title: `Default Video ${video.id}`,
-            author: 'Grant Matai Cross',
-            thumbnail: `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
-            addedDate: new Date().toISOString(),
-            order: index
-          }));
-          localStorage.setItem('musicVideos', JSON.stringify(defaultAdminVideos));
+        const response = await fetch('/api/music/videos', { cache: 'no-store' });
+        const result = await response.json();
+
+        if (!response.ok || !result?.success) {
+          throw new Error(result?.error || 'Failed to load music videos');
         }
+
+        const playerVideos: Video[] = (result.data || [])
+          .map((video: any) => ({ id: video.youtube_id }))
+          .filter((video: Video) => video.id && typeof video.id === 'string');
+
+        setAllVideos(playerVideos);
       } catch (error) {
-        console.error('Error loading admin videos:', error);
-        // Clear corrupt localStorage data and use defaults
-        localStorage.removeItem('musicVideos');
-        setAllVideos(defaultVideos);
-        const defaultAdminVideos = defaultVideos.map((video, index) => ({
-          id: video.id,
-          title: `Default Video ${video.id}`,
-          author: 'Grant Matai Cross',
-          thumbnail: `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
-          addedDate: new Date().toISOString(),
-          order: index
-        }));
-        localStorage.setItem('musicVideos', JSON.stringify(defaultAdminVideos));
+        console.error('Error loading music videos:', error);
+        setAllVideos([]);
+      } finally {
+        setLoadingVideos(false);
       }
-    } else {
-      // No localStorage data at all (first visit) - use defaults and save them
-      console.log('No videos in localStorage, using defaults and saving them');
-      setAllVideos(defaultVideos);
-      const defaultAdminVideos = defaultVideos.map((video, index) => ({
-        id: video.id,
-        title: `Default Video ${video.id}`,
-        author: 'Grant Matai Cross',
-        thumbnail: `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
-        addedDate: new Date().toISOString(),
-        order: index
-      }));
-      localStorage.setItem('musicVideos', JSON.stringify(defaultAdminVideos));
-    }
+    };
+
+    loadMusicVideos();
   }, []);
   return (
     <div className="min-h-screen" style={{backgroundColor: '#87AA6A'}}>
@@ -725,7 +638,9 @@ export default function MusicPage() {
             </p>
           </div>
           
-          {allVideos.length > 0 ? (
+          {loadingVideos ? (
+            <div className="text-center py-16 text-white">Loading music videos...</div>
+          ) : allVideos.length > 0 ? (
             <MusicPlayer videos={allVideos} />
           ) : (
             <div className="text-center py-16">

@@ -114,6 +114,7 @@ Run the SQL files in the project root in your Supabase dashboard:
 - `create_contact_messages_table.sql`
 - `create_materials_table.sql`
 - `student_management_setup.sql`
+- `create_music_videos_table.sql`
 
 ### Email Configuration
 1. Enable 2-factor authentication on Gmail
