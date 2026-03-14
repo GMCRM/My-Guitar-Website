@@ -480,32 +480,13 @@ const StudentPortal = () => {
 
   // Fetch leaderboard opt-in status when user changes or admin selects a student
   useEffect(() => {
-    const fetchOptInStatus = async () => {
-      // Determine which student ID to check
-      const studentIdToCheck = isAdminMode && selectedStudentId ? selectedStudentId : user?.id;
-      
-      if (!studentIdToCheck) {
-        setLeaderboardOptIn(false);
-        return;
-      }
+    const studentIdToCheck = isAdminMode && selectedStudentId ? selectedStudentId : user?.id;
+    if (!studentIdToCheck) {
+      setLeaderboardOptIn(false);
+      return;
+    }
 
-      try {
-        const response = await fetch(`/api/student/settings?studentId=${studentIdToCheck}`);
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Leaderboard opt-in status for student:', studentIdToCheck, '=', data.leaderboard_opt_in);
-          setLeaderboardOptIn(data.leaderboard_opt_in || false);
-        } else {
-          console.log('Failed to fetch opt-in status, response not ok');
-          setLeaderboardOptIn(false);
-        }
-      } catch (error) {
-        console.error('Error fetching leaderboard opt-in status:', error);
-        setLeaderboardOptIn(false);
-      }
-    };
-
-    fetchOptInStatus();
+    loadLeaderboardOptInStatus(studentIdToCheck);
   }, [user, isAdminMode, selectedStudentId]);
 
   // Reset material index when materials change
@@ -564,6 +545,28 @@ const StudentPortal = () => {
   }, []);
 
   // Load students list for admin mode
+  const loadLeaderboardOptInStatus = async (studentId: string) => {
+    if (!studentId) {
+      setLeaderboardOptIn(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/student/settings?studentId=${studentId}`, { cache: 'no-store' });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Leaderboard opt-in status for student:', studentId, '=', data.leaderboard_opt_in);
+        setLeaderboardOptIn(data.leaderboard_opt_in || false);
+      } else {
+        console.log('Failed to fetch opt-in status, response not ok');
+        setLeaderboardOptIn(false);
+      }
+    } catch (error) {
+      console.error('Error fetching leaderboard opt-in status:', error);
+      setLeaderboardOptIn(false);
+    }
+  };
+
   const loadStudentsForAdmin = async () => {
     if (!user || !user.email) {
       console.error('No user or email available for loading students');
@@ -588,6 +591,7 @@ const StudentPortal = () => {
           const firstStudentId = result.data[0].id;
           setSelectedStudentId(firstStudentId);
           loadStudentDataViaAPI(firstStudentId);
+          loadLeaderboardOptInStatus(firstStudentId);
         }
       } else {
         console.error('Error loading students:', result.error);
@@ -659,6 +663,7 @@ const StudentPortal = () => {
   const handleStudentChange = (studentId: string) => {
     setSelectedStudentId(studentId);
     loadStudentDataViaAPI(studentId);
+    loadLeaderboardOptInStatus(studentId);
   };
 
   const loadStudentData = async (userId: string) => {
