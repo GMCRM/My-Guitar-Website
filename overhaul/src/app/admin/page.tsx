@@ -566,7 +566,8 @@ const AdminDashboardContent = () => {
 
   const loadMessages = async () => {
     try {
-      const response = await fetch('/api/contact');
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
+      const response = await fetch(`/api/contact?userEmail=${encodeURIComponent(userEmail)}`);
       if (response.ok) {
         const data = await response.json();
         // Transform the data to match the expected format
@@ -583,7 +584,11 @@ const AdminDashboardContent = () => {
         }));
         setMessages(transformedMessages);
       } else {
-        console.error('Failed to load messages');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to load messages', {
+          status: response.status,
+          error: errorData?.error || response.statusText
+        });
         // Fallback to empty array
         setMessages([]);
       }
@@ -1345,6 +1350,7 @@ const AdminDashboardContent = () => {
 
   const markMessageAsRead = async (messageId: string) => {
     try {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
       const response = await fetch('/api/contact', {
         method: 'PATCH',
         headers: {
@@ -1352,7 +1358,8 @@ const AdminDashboardContent = () => {
         },
         body: JSON.stringify({
           id: messageId,
-          status: 'read'
+          status: 'read',
+          userEmail
         }),
       });
 
@@ -1374,13 +1381,15 @@ const AdminDashboardContent = () => {
     }
 
     try {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
       const response = await fetch('/api/contact', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: messageId
+          id: messageId,
+          userEmail
         }),
       });
 

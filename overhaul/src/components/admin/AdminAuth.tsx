@@ -107,6 +107,13 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
     await supabase.auth.signOut();
   };
 
+  const handleEnterSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      (e.currentTarget.form as HTMLFormElement | null)?.requestSubmit();
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#87AA6A'}}>
@@ -137,6 +144,7 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
                   id="email"
                   type="email"
                   autoComplete="username"
+                  onKeyDown={handleEnterSubmit}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -153,6 +161,7 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
                   id="password"
                   type="password"
                   autoComplete="current-password"
+                  onKeyDown={handleEnterSubmit}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

@@ -101,6 +101,13 @@ export default function Navigation() {
     }
   };
 
+  const handleEnterSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      (e.currentTarget.form as HTMLFormElement | null)?.requestSubmit();
+    }
+  };
+
   return (
     <header className="shadow-soft sticky top-0 z-50" style={{backgroundColor: '#BC6A1B', borderBottom: '2px solid #602718'}}>
       <nav className="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8" aria-label="Global">
@@ -294,6 +301,7 @@ export default function Navigation() {
                       type="email"
                       id="email"
                       autoComplete="username"
+                      onKeyDown={handleEnterSubmit}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white bg-transparent placeholder-gray-300"
@@ -309,6 +317,7 @@ export default function Navigation() {
                       type="password"
                       id="password"
                       autoComplete="current-password"
+                      onKeyDown={handleEnterSubmit}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white bg-transparent placeholder-gray-300"
