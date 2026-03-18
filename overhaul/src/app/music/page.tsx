@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { 
@@ -35,6 +35,149 @@ interface VideoData {
 interface Video {
   id: string;
 }
+
+interface AudioTrack {
+  id: number;
+  title: string;
+  url: string;
+}
+
+const AudioPlaylistPlayer = ({ tracks }: { tracks: AudioTrack[] }) => {
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const currentTrack = tracks[currentTrackIndex];
+
+  const playCurrentTrack = async () => {
+    if (!audioRef.current) return;
+
+    try {
+      await audioRef.current.play();
+      setIsPlaying(true);
+    } catch (error) {
+      console.error('Error playing audio track:', error);
+      setIsPlaying(false);
+    }
+  };
+
+  const pauseCurrentTrack = () => {
+    if (!audioRef.current) return;
+    audioRef.current.pause();
+    setIsPlaying(false);
+  };
+
+  const nextTrack = () => {
+    if (tracks.length === 0) return;
+    setCurrentTrackIndex((prev) => (prev + 1) % tracks.length);
+  };
+
+  const prevTrack = () => {
+    if (tracks.length === 0) return;
+    setCurrentTrackIndex((prev) => (prev - 1 + tracks.length) % tracks.length);
+  };
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      pauseCurrentTrack();
+    } else {
+      playCurrentTrack();
+    }
+  };
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    audioRef.current.load();
+    if (isPlaying) {
+      playCurrentTrack();
+    }
+  }, [currentTrackIndex]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onEnded = () => {
+      if (tracks.length <= 1) {
+        setIsPlaying(false);
+        return;
+      }
+
+      const nextIndex = (currentTrackIndex + 1) % tracks.length;
+      setCurrentTrackIndex(nextIndex);
+    };
+
+    audio.addEventListener('ended', onEnded);
+    return () => audio.removeEventListener('ended', onEnded);
+  }, [currentTrackIndex, tracks.length]);
+
+  return (
+    <div className="rounded-3xl p-8 shadow-forest" style={{backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)'}}>
+      <div className="mb-6">
+        <p className="text-sm uppercase tracking-wider text-white text-opacity-70">Now Playing</p>
+        <h3 className="text-2xl font-bold text-white mt-2 font-serif">{currentTrack.title}</h3>
+      </div>
+
+      <audio ref={audioRef} preload="metadata" className="hidden">
+        <source src={currentTrack.url} />
+      </audio>
+
+      <div className="flex items-center justify-center space-x-4 mb-6">
+        <button
+          onClick={prevTrack}
+          className="p-3 rounded-full hover:scale-110 transition-transform"
+          style={{backgroundColor: '#BC6A1B'}}
+        >
+          <BackwardIcon className="w-6 h-6 text-white" />
+        </button>
+
+        <button
+          onClick={togglePlay}
+          className="p-4 rounded-full hover:scale-110 transition-transform"
+          style={{backgroundColor: '#602718'}}
+        >
+          {isPlaying ? (
+            <div className="w-8 h-8 flex items-center justify-center">
+              <div className="w-2 h-6 bg-white rounded mr-1"></div>
+              <div className="w-2 h-6 bg-white rounded"></div>
+            </div>
+          ) : (
+            <PlayIcon className="w-8 h-8 text-white ml-1" />
+          )}
+        </button>
+
+        <button
+          onClick={nextTrack}
+          className="p-3 rounded-full hover:scale-110 transition-transform"
+          style={{backgroundColor: '#BC6A1B'}}
+        >
+          <ForwardIcon className="w-6 h-6 text-white" />
+        </button>
+      </div>
+
+      <div className="border-t border-white border-opacity-20 pt-6">
+        <h4 className="text-lg font-semibold text-white mb-4">Audio Tracks ({tracks.length})</h4>
+        <div className="space-y-2 max-h-72 overflow-y-auto">
+          {tracks.map((track, index) => (
+            <button
+              key={track.id}
+              onClick={() => setCurrentTrackIndex(index)}
+              className={`w-full text-left p-3 rounded-xl transition-all hover:bg-white hover:bg-opacity-10 ${
+                index === currentTrackIndex ? 'ring-2 ring-orange-400 bg-orange-900 bg-opacity-30' : ''
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-white font-medium truncate pr-4">{track.title}</span>
+                <span className="text-xs text-white text-opacity-70">{index + 1}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Built-in Music Player Component
 const MusicPlayer = ({ videos }: { videos: Video[] }) => {
@@ -525,7 +668,39 @@ const MusicPlayer = ({ videos }: { videos: Video[] }) => {
 
 export default function MusicPage() {
   const [allVideos, setAllVideos] = useState<Video[]>([]);
+  const [audioTracks, setAudioTracks] = useState<AudioTrack[]>([]);
+  const [loadingAudio, setLoadingAudio] = useState(true);
   const [loadingVideos, setLoadingVideos] = useState(true);
+
+  useEffect(() => {
+    const loadAudioTracks = async () => {
+      try {
+        const response = await fetch('/api/music/audio', { cache: 'no-store' });
+        const result = await response.json();
+
+        if (!response.ok || !result?.success) {
+          throw new Error(result?.error || 'Failed to load audio tracks');
+        }
+
+        const tracks: AudioTrack[] = (result.data || [])
+          .map((track: { id: number; title: string; public_url: string }) => ({
+            id: track.id,
+            title: track.title,
+            url: track.public_url
+          }))
+          .filter((track: AudioTrack) => Number.isFinite(track.id) && Boolean(track.title) && Boolean(track.url));
+
+        setAudioTracks(tracks);
+      } catch (error) {
+        console.error('Error loading music audio tracks:', error);
+        setAudioTracks([]);
+      } finally {
+        setLoadingAudio(false);
+      }
+    };
+
+    loadAudioTracks();
+  }, []);
 
   useEffect(() => {
     const loadMusicVideos = async () => {
@@ -556,7 +731,7 @@ export default function MusicPage() {
     <div className="min-h-screen" style={{backgroundColor: '#87AA6A'}}>
       <Navigation />
       
-      {/* Hero Section */}
+      {/* Audio Section */}
       <section className="relative overflow-hidden py-24 sm:py-32" style={{backgroundColor: '#87AA6A'}}>
         {/* Background decorations */}
         <div className="absolute inset-0 opacity-20">
@@ -566,7 +741,7 @@ export default function MusicPage() {
         </div>
         
         <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
+          <div className="mx-auto max-w-2xl text-center mb-12">
             {/* Musical decorations */}
             <div className="absolute top-0 left-1/4 text-4xl" style={{color: 'rgba(188, 106, 27, 0.2)'}}>♪</div>
             <div className="absolute top-10 right-1/4 text-3xl" style={{color: 'rgba(96, 39, 24, 0.2)'}}>♫</div>
@@ -577,9 +752,9 @@ export default function MusicPage() {
               transition={{ duration: 0.8 }}
               className="text-4xl font-bold tracking-tight text-white sm:text-6xl font-serif"
             >
-              My Music &{' '}
+              Original Music{' '}
               <span className="relative" style={{color: '#602718'}}>
-                Performances
+                Audio Library
                 <div className="absolute -bottom-2 left-0 right-0 h-1 rounded-full opacity-30" style={{backgroundColor: '#BC6A1B'}}></div>
               </span>
             </motion.h1>
@@ -590,38 +765,26 @@ export default function MusicPage() {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="mt-6 text-lg leading-8 text-white"
             >
-              Explore my collection of acoustic guitar performances, original compositions, 
-              and educational content. From technical studies to beautiful melodies, 
-              discover the artistry of acoustic guitar.
+              Listen to uploaded studio, AI and live covers & recordings with an on-page audio player.
+              Use play, pause, and next/previous controls to move through the collection.
             </motion.p>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="mt-10 flex items-center justify-center gap-x-6"
-            >
-              <Link
-                href="https://www.youtube.com/@grantmataicross8825/featured"
-                target="_blank"
-                className="group px-8 py-4 text-sm font-semibold text-white shadow-warm hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 rounded-lg transition-all hover-lift relative overflow-hidden"
-                style={{backgroundColor: '#602718'}}
-              >
-                <span className="relative z-10 flex items-center">
-                  <MusicalNoteIcon className="w-5 h-5 mr-2" />
-                  Subscribe on YouTube
-                </span>
-              </Link>
-              <Link
-                href="/portal"
-                className="group flex items-center text-sm font-semibold leading-6 text-white transition-colors border-2 px-6 py-3 rounded-lg hover-lift"
-                style={{borderColor: '#602718'}}
-              >
-                <span>Learn with Me</span>
-                <ArrowTopRightOnSquareIcon className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </motion.div>
           </div>
+
+          {loadingAudio ? (
+            <div className="mx-auto max-w-6xl text-center py-16 text-white">Loading audio tracks...</div>
+          ) : audioTracks.length > 0 ? (
+            <div className="mx-auto max-w-6xl">
+              <AudioPlaylistPlayer tracks={audioTracks} />
+            </div>
+          ) : (
+            <div className="mx-auto max-w-3xl text-center py-12 rounded-3xl" style={{backgroundColor: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(14px)'}}>
+              <MusicalNoteIcon className="mx-auto h-14 w-14 text-white opacity-70" />
+              <h3 className="mt-4 text-xl font-semibold text-white">No Audio Tracks Available</h3>
+              <p className="mt-2 text-white text-opacity-80">
+                New recordings will appear here once uploaded from the admin portal.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
