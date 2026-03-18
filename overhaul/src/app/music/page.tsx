@@ -255,7 +255,7 @@ const MusicPlayer = ({ videos }: { videos: Video[] }) => {
 
   // Load YouTube Player API
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || loading || !currentVideo?.id) return;
 
     // Load YouTube API if not already loaded
     if (!window.YT) {
@@ -271,11 +271,18 @@ const MusicPlayer = ({ videos }: { videos: Video[] }) => {
     } else {
       initializePlayer();
     }
-  }, [currentVideo.id, currentKey]);
+  }, [loading, currentVideo?.id, currentKey]);
 
   const initializePlayer = () => {
     if (!window.YT || !window.YT.Player) {
       console.log('YouTube API not ready yet');
+      return;
+    }
+
+    const containerId = `youtube-player-${currentKey}`;
+    const playerContainer = document.getElementById(containerId);
+    if (!playerContainer) {
+      console.log('YouTube player container not found yet:', containerId);
       return;
     }
 
@@ -293,7 +300,7 @@ const MusicPlayer = ({ videos }: { videos: Video[] }) => {
     console.log('Initializing YouTube player for video:', currentVideo.id);
     
     try {
-      const newPlayer = new window.YT.Player(`youtube-player-${currentKey}`, {
+      const newPlayer = new window.YT.Player(containerId, {
         height: '100%',
         width: '100%',
         videoId: currentVideo.id,
