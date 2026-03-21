@@ -111,6 +111,9 @@ const AdminDashboardContent = () => {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [addingMusicAudio, setAddingMusicAudio] = useState(false);
   const [audioTrackList, setAudioTrackList] = useState<MusicAudioTrack[]>([]);
+  const [editingAudioTrackId, setEditingAudioTrackId] = useState<number | null>(null);
+  const [editingAudioTitle, setEditingAudioTitle] = useState('');
+  const [savingAudioTitle, setSavingAudioTitle] = useState(false);
 
   // Messages State
   const [messages, setMessages] = useState<any[]>([]);
@@ -1368,6 +1371,30 @@ const AdminDashboardContent = () => {
     return fileName.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim();
   };
 
+  const sanitizeUploadFileName = (fileName: string) => {
+    const normalizedName = fileName.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+    const sanitized = normalizedName.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_+/g, '_');
+    const trimmed = sanitized.replace(/^_+|_+$/g, '');
+
+    if (!trimmed) {
+      return `audio-${Date.now()}.mp3`;
+    }
+
+    return trimmed;
+  };
+
+  const createSafeAudioUploadFile = (file: File) => {
+    const safeName = sanitizeUploadFileName(file.name || `audio-${Date.now()}.mp3`);
+    if (safeName === file.name) {
+      return file;
+    }
+
+    return new File([file], safeName, {
+      type: file.type || 'audio/mpeg',
+      lastModified: file.lastModified
+    });
+  };
+
   const addAudioTrack = async () => {
     if (!audioFile) return;
 
@@ -1379,11 +1406,13 @@ const AdminDashboardContent = () => {
         throw new Error('Not authenticated');
       }
 
+      const uploadFile = createSafeAudioUploadFile(audioFile);
+
       const formData = new FormData();
-      formData.append('file', audioFile);
+      formData.append('file', uploadFile);
       formData.append('userEmail', userEmail);
 
-      const normalizedTitle = audioTitle.trim() || getTitleFromFileName(audioFile.name);
+      const normalizedTitle = audioTitle.trim() || getTitleFromFileName(uploadFile.name);
       if (normalizedTitle) {
         formData.append('title', normalizedTitle);
       }
@@ -1403,6 +1432,10 @@ const AdminDashboardContent = () => {
       await loadAudioTrackList(userEmail);
     } catch (error) {
       console.error('Error adding audio track:', error);
+      if (error instanceof TypeError && /expected pattern/i.test(error.message)) {
+        alert('Upload failed due to an unsupported file name. Please rename the file using letters/numbers only and try again.');
+        return;
+      }
       alert(error instanceof Error ? error.message : 'Error uploading audio track. Please try again.');
     } finally {
       setAddingMusicAudio(false);
@@ -1429,6 +1462,72 @@ const AdminDashboardContent = () => {
     } catch (error) {
       console.error('Error deleting audio track:', error);
       alert(error instanceof Error ? error.message : 'Error deleting audio track. Please try again.');
+    }
+  };
+
+  const startEditingAudioTitle = (track: MusicAudioTrack) => {
+    setEditingAudioTrackId(track.dbId);
+    setEditingAudioTitle(track.title);
+  };
+
+  const cancelEditingAudioTitle = () => {
+    setEditingAudioTrackId(null);
+    setEditingAudioTitle('');
+  };
+
+  const saveAudioTitle = async (trackId: number) => {
+    const normalizedTitle = editingAudioTitle.trim();
+    if (!normalizedTitle) {
+      alert('Track title cannot be empty.');
+      return;
+    }
+
+    if (normalizedTitle.length > 200) {
+      alert('Track title must be 200 characters or less.');
+      return;
+    }
+
+    setSavingAudioTitle(true);
+
+    try {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`/api/admin/music-audio?userEmail=${encodeURIComponent(userEmail)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          trackId,
+          title: normalizedTitle
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Failed to update audio title');
+      }
+
+      setAudioTrackList((prevTracks) =>
+        prevTracks.map((track) =>
+          track.dbId === trackId
+            ? {
+                ...track,
+                title: normalizedTitle
+              }
+            : track
+        )
+      );
+
+      cancelEditingAudioTitle();
+    } catch (error) {
+      console.error('Error updating audio title:', error);
+      alert(error instanceof Error ? error.message : 'Error updating audio title. Please try again.');
+    } finally {
+      setSavingAudioTitle(false);
     }
   };
 
@@ -2389,7 +2488,44 @@ const AdminDashboardContent = () => {
                               </div>
                             </div>
                             <div className="min-w-0 flex-1">
-                              <h3 className="text-gray-800 font-medium truncate">{track.title}</h3>
+                              {editingAudioTrackId === track.dbId ? (
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={editingAudioTitle}
+                                    onChange={(e) => setEditingAudioTitle(e.target.value)}
+                                    className="w-full px-3 py-1 rounded border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                    maxLength={200}
+                                  />
+                                  <button
+                                    onClick={() => saveAudioTitle(track.dbId)}
+                                    disabled={savingAudioTitle}
+                                    className="p-1 text-green-700 hover:text-green-900 transition-colors disabled:opacity-50"
+                                    title="Save title"
+                                  >
+                                    <CheckIcon className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={cancelEditingAudioTitle}
+                                    disabled={savingAudioTitle}
+                                    className="p-1 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50"
+                                    title="Cancel"
+                                  >
+                                    <XMarkIcon className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <h3 className="text-gray-800 font-medium truncate">{track.title}</h3>
+                                  <button
+                                    onClick={() => startEditingAudioTitle(track)}
+                                    className="p-1 text-gray-600 hover:text-gray-800 transition-colors"
+                                    title="Edit title"
+                                  >
+                                    <PencilIcon className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
                               <p className="text-gray-500 text-xs">
                                 Added {new Date(track.addedDate).toLocaleDateString()}
                               </p>

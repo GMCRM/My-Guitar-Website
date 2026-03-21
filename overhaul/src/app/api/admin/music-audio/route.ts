@@ -183,6 +183,28 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json();
     const orderedAudioIds = Array.isArray(body?.orderedAudioIds) ? body.orderedAudioIds : null;
+    const trackId = Number(body?.trackId);
+    const title = String(body?.title || '').trim();
+
+    if (Number.isFinite(trackId) && title) {
+      const { data, error } = await supabaseAdmin
+        .from('music_audio_tracks')
+        .update({ title })
+        .eq('id', trackId)
+        .select('*')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error updating music audio title:', error);
+        return NextResponse.json({ error: 'Failed to update audio title' }, { status: 500 });
+      }
+
+      if (!data) {
+        return NextResponse.json({ error: 'Track not found' }, { status: 404 });
+      }
+
+      return NextResponse.json({ success: true, data });
+    }
 
     if (!orderedAudioIds || orderedAudioIds.length === 0) {
       return NextResponse.json({ error: 'orderedAudioIds is required' }, { status: 400 });
