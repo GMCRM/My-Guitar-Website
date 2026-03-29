@@ -186,7 +186,8 @@ export async function POST(request: NextRequest) {
         student_id: studentId,
         email: student.email,
         is_active: true,
-        permissions: permissions
+        permissions: permissions,
+        allow_portal_student_selector: false
       })
       .select()
       .single();
@@ -221,7 +222,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userEmail, teacherId, permissions, studentAssignments, action } = body;
+    const { userEmail, teacherId, permissions, studentAssignments, allowPortalStudentSelector, action } = body;
 
     // Verify super admin access (only super admin can modify teachers)
     if (userEmail !== 'grantmatai@gmail.com') {
@@ -298,6 +299,22 @@ export async function PATCH(request: NextRequest) {
             { status: 500 }
           );
         }
+      }
+    }
+
+    // Update portal selector access toggle if provided
+    if (action === 'updatePortalSelectorAccess' && typeof allowPortalStudentSelector === 'boolean') {
+      const { error: updateSelectorError } = await supabaseAdmin
+        .from('teachers')
+        .update({ allow_portal_student_selector: allowPortalStudentSelector })
+        .eq('id', teacherId);
+
+      if (updateSelectorError) {
+        console.error('Error updating teacher portal selector access:', updateSelectorError);
+        return NextResponse.json(
+          { error: 'Failed to update portal selector access' },
+          { status: 500 }
+        );
       }
     }
 

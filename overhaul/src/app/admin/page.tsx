@@ -400,6 +400,44 @@ const AdminDashboardContent = () => {
     }
   };
 
+  const updateTeacherPortalSelectorAccess = async (teacherId: string) => {
+    if (!selectedTeacherForEdit) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.email !== 'grantmatai@gmail.com') {
+        throw new Error('Super admin access required');
+      }
+
+      const response = await fetch('/api/admin/teachers', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userEmail: user.email,
+          teacherId,
+          allowPortalStudentSelector: Boolean(selectedTeacherForEdit.allow_portal_student_selector),
+          action: 'updatePortalSelectorAccess'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update portal selector access');
+      }
+
+      setSelectedTeacherForEdit(null);
+      loadTeachers();
+
+      alert('Teacher portal selector access updated successfully!');
+    } catch (error: any) {
+      console.error('Error updating teacher portal selector access:', error);
+      alert(`Error updating teacher portal selector access: ${error.message}`);
+    }
+  };
+
   const demoteTeacher = async (teacherId: string, teacherEmail: string) => {
     if (teacherEmail === 'grantmatai@gmail.com') {
       alert('Cannot demote super admin');
@@ -3498,6 +3536,19 @@ const AdminDashboardContent = () => {
                           </div>
                         </div>
 
+                        <div className="mb-4">
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Portal Selector Access:</h4>
+                          <span
+                            className={`px-2 py-1 text-xs rounded-full ${
+                              teacher.allow_portal_student_selector
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            {teacher.allow_portal_student_selector ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </div>
+
                         {/* Assigned Students */}
                         <div>
                           <h4 className="text-sm font-medium text-gray-700 mb-2">
@@ -3606,6 +3657,27 @@ const AdminDashboardContent = () => {
                           </div>
                         </div>
 
+                        <div className="mb-6 p-4 rounded-lg border border-gray-200">
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Portal Access</h4>
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(selectedTeacherForEdit.allow_portal_student_selector)}
+                              onChange={(e) => setSelectedTeacherForEdit((prev: any) => ({
+                                ...prev,
+                                allow_portal_student_selector: e.target.checked
+                              }))}
+                              className="mr-3 rounded focus:ring-green-500"
+                            />
+                            <div>
+                              <span className="font-medium text-gray-800">Allow assigned-student selector in portal</span>
+                              <p className="text-xs text-gray-600">
+                                Enables read-only student selector mode for this teacher in the student portal.
+                              </p>
+                            </div>
+                          </label>
+                        </div>
+
                         {/* Action Buttons */}
                         <div className="flex space-x-3">
                           <button
@@ -3619,6 +3691,12 @@ const AdminDashboardContent = () => {
                             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                           >
                             Update Assignments
+                          </button>
+                          <button
+                            onClick={() => updateTeacherPortalSelectorAccess(selectedTeacherForEdit.id)}
+                            className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                          >
+                            Update Portal Access
                           </button>
                           <button
                             onClick={() => setSelectedTeacherForEdit(null)}

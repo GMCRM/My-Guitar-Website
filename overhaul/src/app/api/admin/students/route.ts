@@ -18,13 +18,27 @@ export async function GET(request: NextRequest) {
     }
 
     if (actor.isSuperAdmin) {
-      return NextResponse.json({ data: data.users });
+      return NextResponse.json({
+        data: data.users,
+        actor: {
+          isSuperAdmin: true,
+          isTeacher: false,
+          allowPortalStudentSelector: true
+        }
+      });
     }
 
     const accessibleStudentIds = await getAccessibleStudentIds(actor);
     const filteredUsers = data.users.filter((user) => accessibleStudentIds.has(user.id));
 
-    return NextResponse.json({ data: filteredUsers });
+    return NextResponse.json({
+      data: filteredUsers,
+      actor: {
+        isSuperAdmin: false,
+        isTeacher: true,
+        allowPortalStudentSelector: actor.allowPortalStudentSelector
+      }
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

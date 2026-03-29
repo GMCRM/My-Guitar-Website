@@ -39,6 +39,7 @@ export interface ActorContext {
   isSuperAdmin: boolean;
   teacherId: string | null;
   teacherStudentId: string | null;
+  allowPortalStudentSelector: boolean;
   permissions: TeacherPermissions;
 }
 
@@ -63,13 +64,14 @@ export async function resolveActorContext(userEmail?: string | null): Promise<Ac
       isSuperAdmin: true,
       teacherId: null,
       teacherStudentId: null,
+      allowPortalStudentSelector: true,
       permissions: ALL_PERMISSIONS
     };
   }
 
   const { data: teacher, error } = await supabaseAdmin
     .from('teachers')
-    .select('id, student_id, permissions')
+    .select('id, student_id, permissions, allow_portal_student_selector')
     .eq('email', userEmail)
     .eq('is_active', true)
     .single();
@@ -83,6 +85,7 @@ export async function resolveActorContext(userEmail?: string | null): Promise<Ac
     isSuperAdmin: false,
     teacherId: teacher.id,
     teacherStudentId: teacher.student_id,
+    allowPortalStudentSelector: Boolean(teacher.allow_portal_student_selector),
     permissions: normalizePermissions(teacher.permissions)
   };
 }

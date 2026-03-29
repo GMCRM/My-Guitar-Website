@@ -55,6 +55,7 @@ export interface Teacher {
   created_by?: string
   is_active: boolean
   permissions: TeacherPermissions
+  allow_portal_student_selector?: boolean
 }
 
 export interface Student {

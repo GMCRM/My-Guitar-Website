@@ -49,6 +49,8 @@ const GUITAR_STRINGS = [
   { name: "E4", freq: 329.63 },
 ];
 
+type PortalMode = 'student-self' | 'super-admin-preview' | 'teacher-assigned-readonly';
+
 const StudentPortal = () => {
   const router = useRouter();
   const [materials, setMaterials] = useState<any[]>([]);
@@ -58,7 +60,8 @@ const StudentPortal = () => {
   const [user, setUser] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
-  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [portalMode, setPortalMode] = useState<PortalMode>('student-self');
+  const [accessError, setAccessError] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'materials' | 'videos' | 'schedule' | 'habits' | 'tuner' | 'practice'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('studentPortalActiveTab');
@@ -76,6 +79,8 @@ const StudentPortal = () => {
   const [habitViewMonth, setHabitViewMonth] = useState(new Date().getMonth());
   const [habitLoading, setHabitLoading] = useState(false);
   const [leaderboardOptIn, setLeaderboardOptIn] = useState(false);
+  const isAdminMode = portalMode !== 'student-self';
+  const isTeacherReadOnlyMode = portalMode === 'teacher-assigned-readonly';
 
   // Guitar Tuner state
   const [tunerRunning, setTunerRunning] = useState(false);
@@ -420,6 +425,68 @@ const StudentPortal = () => {
     localStorage.setItem('studentPortalActiveTab', activeTab);
   }, [activeTab]);
 
+  const resolvePortalModeAndLoadData = async (currentUser: User) => {
+    setAccessError('');
+
+    try {
+      const response = await fetch(`/api/admin/students?userEmail=${encodeURIComponent(currentUser.email || '')}`);
+
+      if (!response.ok) {
+        setPortalMode('student-self');
+        setStudents([]);
+        setSelectedStudentId('');
+        setMaterials([]);
+        setAssignments([]);
+        setVideos([]);
+        loadStudentData(currentUser.id);
+        return;
+      }
+
+      const result = await response.json();
+      const availableStudents = result.data || [];
+      const actor = result.actor || {};
+
+      if (actor.isSuperAdmin) {
+        setPortalMode('super-admin-preview');
+      } else if (actor.isTeacher && actor.allowPortalStudentSelector) {
+        setPortalMode('teacher-assigned-readonly');
+      } else {
+        setPortalMode('student-self');
+        setStudents([]);
+        setSelectedStudentId('');
+        setMaterials([]);
+        setAssignments([]);
+        setVideos([]);
+        loadStudentData(currentUser.id);
+        return;
+      }
+
+      setStudents(availableStudents);
+
+      if (availableStudents.length > 0) {
+        const firstStudentId = availableStudents[0].id;
+        setSelectedStudentId(firstStudentId);
+        loadStudentDataViaAPI(firstStudentId, currentUser);
+        loadLeaderboardOptInStatus(firstStudentId);
+      } else {
+        setSelectedStudentId('');
+        setMaterials([]);
+        setAssignments([]);
+        setVideos([]);
+      }
+    } catch (error) {
+      console.error('Error resolving portal mode:', error);
+      setAccessError('Unable to load teacher preview right now. Showing your student portal instead.');
+      setPortalMode('student-self');
+      setStudents([]);
+      setSelectedStudentId('');
+      setMaterials([]);
+      setAssignments([]);
+      setVideos([]);
+      loadStudentData(currentUser.id);
+    }
+  };
+
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -427,19 +494,7 @@ const StudentPortal = () => {
       setLoading(false);
       
       if (user) {
-        // Check if user is admin
-        const isAdmin = user.email === 'grantmatai@gmail.com';
-        setIsAdminMode(isAdmin);
-        
-        if (!isAdmin) {
-          // Load data for regular student only
-          loadStudentData(user.id);
-        } else {
-          // For admin users, clear data until they select a student
-          setMaterials([]);
-          setAssignments([]);
-          setVideos([]);
-        }
+        resolvePortalModeAndLoadData(user);
       }
     };
 
@@ -449,31 +504,13 @@ const StudentPortal = () => {
       (event, session) => {
         setUser(session?.user ?? null);
         if (session?.user) {
-          const isAdmin = session.user.email === 'grantmatai@gmail.com';
-          setIsAdminMode(isAdmin);
-          
-          if (!isAdmin) {
-            loadStudentData(session.user.id);
-          } else {
-            // For admin users, clear data until they select a student
-            setMaterials([]);
-            setAssignments([]);
-            setVideos([]);
-          }
+          resolvePortalModeAndLoadData(session.user);
         }
       }
     );
 
     return () => subscription.unsubscribe();
   }, [supabase.auth]);
-
-  // Load students when user is set and is admin
-  useEffect(() => {
-    if (user && isAdminMode) {
-      console.log('User is admin, loading students...');
-      loadStudentsForAdmin();
-    }
-  }, [user, isAdminMode]);
 
   // Debug activeTab changes
   useEffect(() => {
@@ -569,47 +606,14 @@ const StudentPortal = () => {
     }
   };
 
-  const loadStudentsForAdmin = async () => {
-    if (!user || !user.email) {
-      console.error('No user or email available for loading students');
-      return;
-    }
-
-    try {
-      console.log('Loading students for admin:', user.email);
-      const response = await fetch(`/api/admin/students?userEmail=${encodeURIComponent(user.email)}`);
-      const result = await response.json();
-
-      console.log('Students API response:', { status: response.status, result });
-      console.log('Full result data:', result.data);
-      console.log('Result data type:', typeof result.data, Array.isArray(result.data));
-
-      if (response.ok) {
-        setStudents(result.data || []);
-        console.log('Loaded students:', result.data?.length || 0);
-        
-        // Auto-select first student if available
-        if (result.data && result.data.length > 0) {
-          const firstStudentId = result.data[0].id;
-          setSelectedStudentId(firstStudentId);
-          loadStudentDataViaAPI(firstStudentId);
-          loadLeaderboardOptInStatus(firstStudentId);
-        }
-      } else {
-        console.error('Error loading students:', result.error);
-      }
-    } catch (error) {
-      console.error('Error loading students:', error);
-    }
-  };
-
   // Load student data via API for admin mode (bypasses RLS issues)
-  const loadStudentDataViaAPI = async (studentId: string) => {
-    if (!user || !isAdminMode) return;
+  const loadStudentDataViaAPI = async (studentId: string, actorUser?: User | null) => {
+    const currentUser = actorUser || user;
+    if (!currentUser) return;
     
     try {
       console.log('Loading student data via API for student ID:', studentId);
-      const response = await fetch(`/api/admin/materials?studentId=${studentId}&userEmail=${user.email}`);
+      const response = await fetch(`/api/admin/materials?studentId=${studentId}&userEmail=${encodeURIComponent(currentUser.email || '')}`);
       const result = await response.json();
 
       console.log('API materials response:', result);
@@ -623,7 +627,7 @@ const StudentPortal = () => {
       }
 
       // Load assignments via API (for admin mode)
-      const assignmentsResponse = await fetch(`/api/admin/assignments?studentId=${studentId}&userEmail=${encodeURIComponent(user?.email || '')}`);
+      const assignmentsResponse = await fetch(`/api/admin/assignments?studentId=${studentId}&userEmail=${encodeURIComponent(currentUser.email || '')}`);
       
       if (assignmentsResponse.ok) {
         const assignmentsResult = await assignmentsResponse.json();
@@ -639,7 +643,7 @@ const StudentPortal = () => {
       }
 
       // Load videos via API (for admin mode)
-      const videosResponse = await fetch(`/api/admin/videos?studentId=${studentId}&userEmail=${encodeURIComponent(user?.email || '')}`);
+      const videosResponse = await fetch(`/api/admin/videos?studentId=${studentId}&userEmail=${encodeURIComponent(currentUser.email || '')}`);
       
       if (videosResponse.ok) {
         const videosResult = await videosResponse.json();
@@ -764,6 +768,10 @@ const StudentPortal = () => {
   };
 
   const toggleHabit = async (dateStr: string) => {
+    if (isTeacherReadOnlyMode) {
+      return;
+    }
+
     try {
       if (isAdminMode && selectedStudentId) {
         const response = await fetch(`/api/admin/habits?userEmail=${encodeURIComponent(user?.email || '')}`, {
@@ -1215,6 +1223,10 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
 };
 
   const toggleAssignmentComplete = async (assignmentId: string, completed: boolean) => {
+    if (isTeacherReadOnlyMode) {
+      return;
+    }
+
     try {
       if (isAdminMode && selectedStudentId) {
         // Admin mode - use admin API
@@ -1308,12 +1320,32 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
             className="text-center mb-8"
           >
             <h1 className="text-3xl font-bold text-white mb-2">
-              {isAdminMode ? 'Student Portal - Admin Preview' : 'Student Portal'}
+              {portalMode === 'super-admin-preview'
+                ? 'Student Portal - Admin Preview'
+                : portalMode === 'teacher-assigned-readonly'
+                ? 'Student Portal - Teacher View'
+                : 'Student Portal'}
             </h1>
             <p className="text-white text-opacity-80">
-              {isAdminMode ? 'Admin Preview Mode' : 'Welcome back'}
+              {portalMode === 'super-admin-preview'
+                ? 'Admin Preview Mode'
+                : portalMode === 'teacher-assigned-readonly'
+                ? 'Read-only view for your assigned students'
+                : 'Welcome back'}
             </p>
           </motion.div>
+
+          {accessError && (
+            <div className="mb-6 rounded-lg bg-amber-100 border border-amber-300 text-amber-900 px-4 py-3">
+              {accessError}
+            </div>
+          )}
+
+          {isTeacherReadOnlyMode && (
+            <div className="mb-6 rounded-lg bg-blue-100 border border-blue-300 text-blue-900 px-4 py-3">
+              Teacher read-only mode is enabled. You can view assigned student portal content, but you cannot change progress here.
+            </div>
+          )}
 
           {/* Admin Student Selector */}
           {isAdminMode && (
@@ -1325,7 +1357,9 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
               style={{backgroundColor: 'rgba(255,255,255,0.1)'}}
             >
               <div className="flex items-center justify-center space-x-4">
-                <label className="text-white font-semibold">Preview Student Portal for:</label>
+                <label className="text-white font-semibold">
+                  {portalMode === 'super-admin-preview' ? 'Preview Student Portal for:' : 'View Assigned Student:'}
+                </label>
                 <select
                   value={selectedStudentId}
                   onChange={(e) => handleStudentChange(e.target.value)}
@@ -1582,6 +1616,10 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                     <h2 className="text-2xl font-bold text-gray-800">Practice Assignments</h2>
                   </div>
 
+                  {isTeacherReadOnlyMode && (
+                    <p className="mb-4 text-sm text-gray-600">Read-only mode: assignment completion cannot be changed here.</p>
+                  )}
+
                   {assignments.length === 0 ? (
                     <div className="text-center py-12">
                       <CalendarDaysIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -1606,11 +1644,12 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                             <div className="flex items-center space-x-3">
                               <button
                                 onClick={() => toggleAssignmentComplete(assignment.id, assignment.completed)}
+                                disabled={isTeacherReadOnlyMode}
                                 className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
                                   assignment.completed
                                     ? 'border-green-500 bg-green-500'
                                     : 'border-gray-300 hover:border-green-400'
-                                }`}
+                                } ${isTeacherReadOnlyMode ? 'opacity-60 cursor-not-allowed' : ''}`}
                               >
                                 {assignment.completed && (
                                   <CheckIcon className="h-4 w-4 text-white" />
@@ -1648,6 +1687,10 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                     <FireIcon className="h-8 w-8 text-green-700 mr-3" />
                     <h2 className="text-2xl font-bold text-gray-800">Practice Habit Tracker</h2>
                   </div>
+
+                  {isTeacherReadOnlyMode && (
+                    <p className="mb-4 text-sm text-gray-600">Read-only mode: habit completion cannot be changed here.</p>
+                  )}
 
                   {/* Calendar */}
                   <div className="max-w-lg mx-auto">
@@ -1706,6 +1749,7 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                               key={key}
                               type="button"
                               onClick={() => toggleHabit(key)}
+                              disabled={isTeacherReadOnlyMode}
                               className={`relative h-14 rounded-xl border-2 font-semibold text-sm flex items-center justify-center transition-all hover:-translate-y-0.5 ${
                                 isToday
                                   ? 'border-amber-500 shadow-md'
@@ -1714,7 +1758,7 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                                 isCompleted
                                   ? 'bg-green-100 border-green-400'
                                   : 'bg-white hover:border-green-300'
-                              }`}
+                              } ${isTeacherReadOnlyMode ? 'opacity-70 cursor-not-allowed hover:translate-y-0' : ''}`}
                             >
                               <span className={`z-10 ${isCompleted ? 'text-green-800' : 'text-gray-700'}`}>{day}</span>
                               {isCompleted && (
