@@ -128,6 +128,11 @@ const AdminDashboardContent = () => {
   const [studentVideos, setStudentVideos] = useState<any[]>([]);
   const [studentOptIns, setStudentOptIns] = useState<Map<string, boolean>>(new Map());
   const [studentAnalyticsOptIns, setStudentAnalyticsOptIns] = useState<Map<string, boolean>>(new Map());
+  const [studentClassTotalIncluded, setStudentClassTotalIncluded] = useState<Map<string, boolean>>(new Map());
+  const [studentClassTotalVisible, setStudentClassTotalVisible] = useState<Map<string, boolean>>(new Map());
+  const [classTotalMilestone, setClassTotalMilestone] = useState<number>(500);
+  const [milestoneInput, setMilestoneInput] = useState<string>('500');
+  const [updatingMilestone, setUpdatingMilestone] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [newAssignment, setNewAssignment] = useState({
     day: 'monday',
@@ -496,6 +501,7 @@ const AdminDashboardContent = () => {
     }
 
     loadStudents(email);
+    loadClassTotalMilestone();
 
     if (isSuperAdmin) {
       loadTeachers();
@@ -715,7 +721,9 @@ const AdminDashboardContent = () => {
         // Load opt-in status for each student
         const leaderboardOptIns = new Map<string, boolean>();
         const analyticsOptIns = new Map<string, boolean>();
-        
+        const classTotalIncluded = new Map<string, boolean>();
+        const classTotalVisible = new Map<string, boolean>();
+
         for (const student of studentsList) {
           try {
             const optInResponse = await fetch(`/api/student/settings?studentId=${student.id}`);
@@ -723,19 +731,25 @@ const AdminDashboardContent = () => {
               const optInData = await optInResponse.json();
               leaderboardOptIns.set(student.id, optInData.leaderboard_opt_in || false);
               analyticsOptIns.set(student.id, optInData.analytics_opt_in || false);
+              classTotalIncluded.set(student.id, optInData.class_total_included || false);
+              classTotalVisible.set(student.id, optInData.class_total_visible || false);
               console.log(`Student ${student.id} leaderboard opt-in:`, optInData.leaderboard_opt_in, 'analytics opt-in:', optInData.analytics_opt_in);
             }
           } catch (err) {
             console.error(`Error loading opt-in for student ${student.id}:`, err);
             leaderboardOptIns.set(student.id, false);
             analyticsOptIns.set(student.id, false);
+            classTotalIncluded.set(student.id, false);
+            classTotalVisible.set(student.id, false);
           }
         }
-        
+
         console.log('Total leaderboard opt-ins loaded:', leaderboardOptIns.size);
         console.log('Total analytics opt-ins loaded:', analyticsOptIns.size);
         setStudentOptIns(leaderboardOptIns);
         setStudentAnalyticsOptIns(analyticsOptIns);
+        setStudentClassTotalIncluded(classTotalIncluded);
+        setStudentClassTotalVisible(classTotalVisible);
       }
     } catch (error) {
       console.error('Error loading students:', error);
@@ -955,10 +969,117 @@ const AdminDashboardContent = () => {
       const newOptIns = new Map(studentAnalyticsOptIns);
       newOptIns.set(studentId, !currentOptIn);
       setStudentAnalyticsOptIns(newOptIns);
-      
+
     } catch (error: any) {
       console.error('Error toggling analytics opt-in:', error);
       alert(`Error updating analytics setting: ${error.message}`);
+    }
+  };
+
+  const toggleClassTotalIncluded = async (studentId: string, currentIncluded: boolean) => {
+    try {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
+      const response = await fetch(`/api/admin/students/${studentId}/class-total-included`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          class_total_included: !currentIncluded,
+          userEmail
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update class total inclusion');
+      }
+
+      const newIncluded = new Map(studentClassTotalIncluded);
+      newIncluded.set(studentId, !currentIncluded);
+      setStudentClassTotalIncluded(newIncluded);
+
+    } catch (error: any) {
+      console.error('Error toggling class total inclusion:', error);
+      alert(`Error updating class total setting: ${error.message}`);
+    }
+  };
+
+  const toggleClassTotalVisible = async (studentId: string, currentVisible: boolean) => {
+    try {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
+      const response = await fetch(`/api/admin/students/${studentId}/class-total-visible`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          class_total_visible: !currentVisible,
+          userEmail
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update class total visibility');
+      }
+
+      const newVisible = new Map(studentClassTotalVisible);
+      newVisible.set(studentId, !currentVisible);
+      setStudentClassTotalVisible(newVisible);
+
+    } catch (error: any) {
+      console.error('Error toggling class total visibility:', error);
+      alert(`Error updating class total setting: ${error.message}`);
+    }
+  };
+
+  const loadClassTotalMilestone = async () => {
+    try {
+      const response = await fetch('/api/admin/class-total-milestone');
+      if (response.ok) {
+        const data = await response.json();
+        setClassTotalMilestone(data.milestone || 500);
+        setMilestoneInput(String(data.milestone || 500));
+      }
+    } catch (error) {
+      console.error('Error loading class total milestone:', error);
+    }
+  };
+
+  const updateClassTotalMilestone = async () => {
+    const parsed = parseInt(milestoneInput, 10);
+    if (isNaN(parsed) || parsed <= 0) {
+      alert('Please enter a positive whole number for the goal.');
+      return;
+    }
+
+    setUpdatingMilestone(true);
+    try {
+      const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
+      const response = await fetch('/api/admin/class-total-milestone', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ milestone: parsed, userEmail }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update class goal');
+      }
+
+      const result = await response.json();
+      setClassTotalMilestone(result.milestone);
+      setMilestoneInput(String(result.milestone));
+      alert(`Class practice goal updated to ${result.milestone}!`);
+
+    } catch (error: any) {
+      console.error('Error updating class total milestone:', error);
+      alert(`Error updating class goal: ${error.message}`);
+    } finally {
+      setUpdatingMilestone(false);
     }
   };
 
@@ -3009,13 +3130,46 @@ const AdminDashboardContent = () => {
                 </div>
                 )}
 
+                {/* Class Practice Goal */}
+                <div className="mb-6 p-4 rounded-lg" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                    <span className="mr-2">🎸</span>
+                    Class Practice Goal
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Current goal: <span className="font-semibold text-purple-700">{classTotalMilestone.toLocaleString()}</span> total practices.
+                    Set a new goal once the class reaches it.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      value={milestoneInput}
+                      onChange={(e) => setMilestoneInput(e.target.value)}
+                      disabled={!canManageStudents || updatingMilestone}
+                      className="w-40 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                    />
+                    <button
+                      onClick={updateClassTotalMilestone}
+                      disabled={!canManageStudents || updatingMilestone}
+                      className={`px-4 py-2 rounded-md text-white font-medium ${
+                        !canManageStudents || updatingMilestone
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : 'bg-purple-600 hover:bg-purple-700'
+                      }`}
+                    >
+                      {updatingMilestone ? 'Updating...' : 'Update Goal'}
+                    </button>
+                  </div>
+                </div>
+
                 {/* Students List */}
                 <div className="mb-6 p-4 rounded-lg" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     <UserGroupIcon className="h-5 w-5 mr-2" />
                     {isSuperAdmin ? `All Students (${students.length})` : `Assigned Students (${students.length})`}
                   </h3>
-                  
+
                   {students.length === 0 ? (
                     <p className="text-gray-500 text-center py-4">No accessible students found.</p>
                   ) : (
@@ -3073,6 +3227,40 @@ const AdminDashboardContent = () => {
                                     <span className="text-blue-600 font-medium">✓ Analytics Enabled</span>
                                   ) : (
                                     <span>Enable Analytics</span>
+                                  )}
+                                </span>
+                              </label>
+                              {/* Class Total Included Checkbox */}
+                              <label className="flex items-center mt-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={studentClassTotalIncluded.get(student.id) || false}
+                                  onChange={() => toggleClassTotalIncluded(student.id, studentClassTotalIncluded.get(student.id) || false)}
+                                  disabled={!canEditStudentProfile}
+                                  className="h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">
+                                  {studentClassTotalIncluded.get(student.id) ? (
+                                    <span className="text-purple-600 font-medium">✓ Counts Toward Class Total</span>
+                                  ) : (
+                                    <span>Include in Class Total</span>
+                                  )}
+                                </span>
+                              </label>
+                              {/* Class Total Visible Checkbox */}
+                              <label className="flex items-center mt-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={studentClassTotalVisible.get(student.id) || false}
+                                  onChange={() => toggleClassTotalVisible(student.id, studentClassTotalVisible.get(student.id) || false)}
+                                  disabled={!canEditStudentProfile}
+                                  className="h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">
+                                  {studentClassTotalVisible.get(student.id) ? (
+                                    <span className="text-purple-600 font-medium">✓ Can View Class Total</span>
+                                  ) : (
+                                    <span>Allow Viewing Class Total</span>
                                   )}
                                 </span>
                               </label>

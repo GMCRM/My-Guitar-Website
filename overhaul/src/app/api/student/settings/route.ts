@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     // Fetch student settings (RLS will ensure student can only view their own)
     const { data: studentSettings, error } = await supabase
       .from('students')
-      .select('leaderboard_opt_in, analytics_opt_in')
+      .select('leaderboard_opt_in, analytics_opt_in, class_total_included, class_total_visible')
       .eq('id', studentId)
       .single();
 
@@ -33,9 +33,11 @@ export async function GET(request: NextRequest) {
       // If record doesn't exist, return default false
       if (error.code === 'PGRST116') {
         console.log('No settings record found for student, returning default false');
-        return NextResponse.json({ 
+        return NextResponse.json({
           leaderboard_opt_in: false,
-          analytics_opt_in: false
+          analytics_opt_in: false,
+          class_total_included: false,
+          class_total_visible: false
         });
       }
       console.error('Error fetching student settings:', error);
@@ -48,7 +50,9 @@ export async function GET(request: NextRequest) {
     console.log('Student settings found:', studentSettings);
     return NextResponse.json({
       leaderboard_opt_in: studentSettings?.leaderboard_opt_in || false,
-      analytics_opt_in: studentSettings?.analytics_opt_in || false
+      analytics_opt_in: studentSettings?.analytics_opt_in || false,
+      class_total_included: studentSettings?.class_total_included || false,
+      class_total_visible: studentSettings?.class_total_visible || false
     });
 
   } catch (error) {

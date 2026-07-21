@@ -28,6 +28,7 @@ import {
 import Navigation from '@/components/Navigation';
 import GuitarPractice from '@/components/portal/GuitarPractice';
 import GuitarLeaderboard from '@/components/portal/GuitarLeaderboard';
+import ClassTotalPractice from '@/components/portal/ClassTotalPractice';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
@@ -79,6 +80,7 @@ const StudentPortal = () => {
   const [habitViewMonth, setHabitViewMonth] = useState(new Date().getMonth());
   const [habitLoading, setHabitLoading] = useState(false);
   const [leaderboardOptIn, setLeaderboardOptIn] = useState(false);
+  const [classTotalVisible, setClassTotalVisible] = useState(false);
   const isAdminMode = portalMode !== 'student-self';
   const isTeacherReadOnlyMode = portalMode === 'teacher-assigned-readonly';
 
@@ -587,6 +589,7 @@ const StudentPortal = () => {
   const loadLeaderboardOptInStatus = async (studentId: string) => {
     if (!studentId) {
       setLeaderboardOptIn(false);
+      setClassTotalVisible(false);
       return;
     }
 
@@ -596,13 +599,16 @@ const StudentPortal = () => {
         const data = await response.json();
         console.log('Leaderboard opt-in status for student:', studentId, '=', data.leaderboard_opt_in);
         setLeaderboardOptIn(data.leaderboard_opt_in || false);
+        setClassTotalVisible(data.class_total_visible || false);
       } else {
         console.log('Failed to fetch opt-in status, response not ok');
         setLeaderboardOptIn(false);
+        setClassTotalVisible(false);
       }
     } catch (error) {
       console.error('Error fetching leaderboard opt-in status:', error);
       setLeaderboardOptIn(false);
+      setClassTotalVisible(false);
     }
   };
 
@@ -1782,11 +1788,20 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
                     </div>
                   </div>
 
+                  {/* Class Total - only show if student has been granted access */}
+                  {(() => {
+                    const currentStudentId = isAdminMode && selectedStudentId ? selectedStudentId : user?.id;
+                    if (classTotalVisible && currentStudentId) {
+                      return <ClassTotalPractice studentId={currentStudentId} />;
+                    }
+                    return null;
+                  })()}
+
                   {/* Leaderboard - only show if student has opted in */}
                   {(() => {
                     const currentStudentId = isAdminMode && selectedStudentId ? selectedStudentId : user?.id;
-                    
-                    console.log('Leaderboard render check:', { 
+
+                    console.log('Leaderboard render check:', {
                       leaderboardOptIn, 
                       isAdminMode,
                       selectedStudentId,
