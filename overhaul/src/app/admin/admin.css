@@ -1,29 +1,31 @@
 /* Design layer for the admin area. Everything is scoped to .admin-shell so the public site is untouched. */
 
 .admin-shell {
-  --admin-bg: #f6f5f0;
+  --admin-bg: #e8f1dc;
   --admin-surface: #ffffff;
-  --admin-subtle: #f3f2ec;
-  --admin-border: #e3e1d8;
-  --admin-border-strong: #cfccc0;
+  --admin-subtle: #f1f5e9;
+  --admin-border: #d7e0c6;
+  --admin-border-strong: #b9c4a3;
   --admin-ink: #24261c;
-  --admin-muted: #666a5a;
+  --admin-muted: #565c47;
   --admin-brand: #535925;
   --admin-brand-hover: #434820;
-  --admin-brand-tint: #eef0e0;
+  --admin-green: #87aa6a;
+  --admin-green-medium: #66732c;
+  --admin-brand-tint: #e8f1dc;
   --admin-attention: #a35a14;
   --admin-attention-tint: #fbf0e2;
   --admin-danger: #b3321f;
   --admin-danger-tint: #fbece9;
 
   /* Tailwind v4 reads these, so existing gray utilities pick up the warm neutral palette. */
-  --color-gray-50: #f8f7f3;
-  --color-gray-100: #f0efe9;
-  --color-gray-200: #e3e1d8;
-  --color-gray-300: #cfccc0;
-  --color-gray-400: #a5a292;
-  --color-gray-500: #7d7f70;
-  --color-gray-600: #666a5a;
+  --color-gray-50: #f6f8f0;
+  --color-gray-100: #edf2e3;
+  --color-gray-200: #d7e0c6;
+  --color-gray-300: #b9c4a3;
+  --color-gray-400: #98a284;
+  --color-gray-500: #6c7359;
+  --color-gray-600: #565c47;
   --color-gray-700: #4b4e41;
   --color-gray-800: #2f3226;
   --color-gray-900: #24261c;
@@ -49,11 +51,14 @@
   padding-top: 20px;
 }
 
-.admin-page-header {
-  margin-bottom: 20px;
+.admin-hero {
+  margin-bottom: 24px;
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--admin-green);
 }
 
-.admin-page-header h1 {
+.admin-hero h1 {
   margin: 0;
   font-size: 1.5rem;
   line-height: 1.25;
@@ -62,17 +67,26 @@
   color: var(--admin-ink);
 }
 
-.admin-page-header p {
+.admin-hero p {
   margin: 4px 0 0;
   font-size: 0.875rem;
-  color: var(--admin-muted);
+  color: var(--admin-ink);
+}
+
+.admin-hero .admin-stats {
+  margin: 16px 0 0;
+}
+
+@media (min-width: 768px) {
+  .admin-hero {
+    padding: 24px;
+  }
 }
 
 /* Section navigation: a scrolling strip on small screens, a sidebar on large ones. */
 .admin-sidebar {
   margin: 0 -16px;
-  border-bottom: 1px solid var(--admin-border);
-  background: var(--admin-surface);
+  background: var(--admin-brand);
 }
 
 .admin-nav {
@@ -97,17 +111,17 @@
   font-size: 0.875rem;
   font-weight: 500;
   white-space: nowrap;
-  color: var(--admin-muted);
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .admin-nav-item:hover {
-  background: var(--admin-subtle);
-  color: var(--admin-ink);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
 }
 
 .admin-nav-item[aria-current='page'] {
-  background: var(--admin-brand-tint);
-  color: var(--admin-brand);
+  background: var(--admin-green);
+  color: var(--admin-ink);
 }
 
 .admin-nav-count {
@@ -140,7 +154,6 @@
     align-self: start;
     margin: 32px 0 0;
     padding: 8px;
-    border: 1px solid var(--admin-border);
     border-radius: 12px;
   }
 
@@ -194,7 +207,7 @@
   line-height: 1.2;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--admin-ink);
+  color: var(--admin-brand);
 }
 
 /* Section headings */
@@ -226,7 +239,7 @@
 
 .admin-card-title svg {
   flex: 0 0 auto;
-  color: var(--admin-muted);
+  color: var(--admin-green-medium);
 }
 
 /* Surfaces */

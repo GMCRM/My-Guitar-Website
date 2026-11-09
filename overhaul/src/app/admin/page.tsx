@@ -2123,13 +2123,11 @@ const AdminDashboardContent = () => {
           </aside>
 
           <main className="admin-main">
-            <header className="admin-page-header">
+            <header className="admin-hero">
               <h1>{isSuperAdmin ? 'Admin Dashboard' : 'Teacher Dashboard'}</h1>
               <p>
                 {isSuperAdmin ? 'Manage your blog, music, students, and messages.' : 'Manage your assigned students and permitted tools.'}
               </p>
-            </header>
-
             {(canViewBlogStats || canViewMessageStats) && (
               <dl className="admin-stats">
                 {canViewBlogStats && (
@@ -2145,6 +2143,7 @@ const AdminDashboardContent = () => {
                 )}
               </dl>
             )}
+            </header>
 
             {activeTab === 'blog' && (
               <div>

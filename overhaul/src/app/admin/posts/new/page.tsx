@@ -196,10 +196,10 @@ export default function NewBlogPost() {
       <div className="admin-shell">
         <div className="max-w-3xl mx-auto px-4 lg:px-8 py-8">
           {/* Header */}
-          <div className="admin-page-header">
+          <div className="admin-hero">
             <Link 
               href="/admin"
-              className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-3"
+              className="inline-flex items-center text-sm text-gray-900 hover:underline mb-3"
             >
               <ArrowLeftIcon className="w-4 h-4 mr-2" />
               Back to Dashboard
