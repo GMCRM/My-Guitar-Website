@@ -8,6 +8,7 @@ import { ArrowLeftIcon, PhotoIcon, EyeIcon, XMarkIcon } from '@heroicons/react/2
 import Navigation from '@/components/Navigation';
 import AdminAuth from '@/components/admin/AdminAuth';
 import { supabase } from '@/lib/supabase';
+import { fitImageForUpload } from '@/lib/fitImageForUpload';
 
 interface PostData {
   title: string;
@@ -69,7 +70,7 @@ export default function NewBlogPost() {
 
       // Create form data for the API endpoint
       const formData = new FormData();
-      formData.append('file', selectedFile);
+      formData.append('file', await fitImageForUpload(selectedFile));
       formData.append('userEmail', user.email || '');
 
       // Upload via admin API endpoint
@@ -79,7 +80,9 @@ export default function NewBlogPost() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({
+          error: response.status === 413 ? 'That image is too large to upload.' : 'Upload failed'
+        }));
         console.error('API upload error:', errorData);
         alert(errorData.error || 'Upload failed');
         return null;
@@ -276,7 +279,7 @@ export default function NewBlogPost() {
                           </label>
                           <p className="pl-1">or drag and drop</p>
                         </div>
-                        <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                        <p className="text-xs text-gray-500">PNG, JPG or GIF. Large photos are resized automatically.</p>
                       </div>
                     </div>
                   )}
