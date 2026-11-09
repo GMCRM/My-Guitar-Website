@@ -83,7 +83,7 @@ const AdminDashboardContent = () => {
     totalPosts: 0,
     publishedPosts: 0,
     draftPosts: 0,
-    subscribers: 0,
+    subscribers: null as number | null,
     unreadMessages: 0
   });
   const [currentUserEmail, setCurrentUserEmail] = useState('');
@@ -577,10 +577,6 @@ const AdminDashboardContent = () => {
         .from('blog_posts')
         .select('published');
 
-      const { data: subscribersData } = await supabase
-        .from('subscribers')
-        .select('id');
-
       if (postsData) {
         const totalPosts = postsData.length;
         const publishedPosts = postsData.filter(p => p.published).length;
@@ -590,12 +586,19 @@ const AdminDashboardContent = () => {
           ...prevStats,
           totalPosts,
           publishedPosts,
-          draftPosts,
-          subscribers: subscribersData?.length || 0
+          draftPosts
         }));
       }
     } catch (error) {
       console.error('Error loading stats:', error);
+    }
+
+    try {
+      const response = await fetch('/api/admin/youtube-subscribers');
+      const data = await response.json();
+      setStats(prevStats => ({ ...prevStats, subscribers: data.count ?? null }));
+    } catch (error) {
+      console.error('Error loading YouTube subscribers:', error);
     }
   };
 
@@ -2134,7 +2137,7 @@ const AdminDashboardContent = () => {
                     <div className="admin-stat"><dt>Total posts</dt><dd>{stats.totalPosts}</dd></div>
                     <div className="admin-stat"><dt>Published</dt><dd>{stats.publishedPosts}</dd></div>
                     <div className="admin-stat"><dt>Drafts</dt><dd>{stats.draftPosts}</dd></div>
-                    <div className="admin-stat"><dt>Subscribers</dt><dd>{stats.subscribers}</dd></div>
+                    <div className="admin-stat"><dt>YouTube subscribers</dt><dd>{stats.subscribers === null ? '–' : stats.subscribers.toLocaleString()}</dd></div>
                   </>
                 )}
                 {canViewMessageStats && (
