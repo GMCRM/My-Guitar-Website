@@ -113,13 +113,10 @@ const hasMessageManagementAccess = async (supabase: any): Promise<boolean> => {
   return Boolean(teacher?.permissions?.can_manage_messages);
 };
 
-const hasMessageManagementAccessWithFallback = async (
-  supabase: any,
-  userEmail?: string | null
-): Promise<boolean> => {
-  if (userEmail) {
-    const actor = await resolveActorContext(userEmail);
-    return Boolean(actor && (actor.isSuperAdmin || actor.permissions.can_manage_messages));
+const hasMessageManagementAccessWithFallback = async (supabase: any): Promise<boolean> => {
+  const actor = await resolveActorContext();
+  if (actor) {
+    return actor.isSuperAdmin || actor.permissions.can_manage_messages;
   }
 
   return hasMessageManagementAccess(supabase);
@@ -230,7 +227,6 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const userEmail = request.nextUrl.searchParams.get('userEmail');
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -255,7 +251,7 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const canManageMessages = await hasMessageManagementAccessWithFallback(supabase, userEmail);
+    const canManageMessages = await hasMessageManagementAccessWithFallback(supabase);
     if (!canManageMessages) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -290,7 +286,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const { id, status, userEmail } = await request.json();
+    const { id, status } = await request.json();
 
     if (!id || !status) {
       return NextResponse.json(
@@ -323,7 +319,7 @@ export async function PATCH(request: NextRequest) {
       }
     );
 
-    const canManageMessages = await hasMessageManagementAccessWithFallback(supabase, userEmail);
+    const canManageMessages = await hasMessageManagementAccessWithFallback(supabase);
     if (!canManageMessages) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -358,7 +354,7 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { id, userEmail } = await request.json();
+    const { id } = await request.json();
 
     if (!id) {
       return NextResponse.json(
@@ -391,7 +387,7 @@ export async function DELETE(request: NextRequest) {
       }
     );
 
-    const canManageMessages = await hasMessageManagementAccessWithFallback(supabase, userEmail);
+    const canManageMessages = await hasMessageManagementAccessWithFallback(supabase);
     if (!canManageMessages) {
       return NextResponse.json(
         { error: 'Unauthorized' },

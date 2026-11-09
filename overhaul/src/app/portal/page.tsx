@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/apiFetch';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -431,7 +432,7 @@ const StudentPortal = () => {
     setAccessError('');
 
     try {
-      const response = await fetch(`/api/admin/students?userEmail=${encodeURIComponent(currentUser.email || '')}`);
+      const response = await apiFetch(`/api/admin/students?userEmail=${encodeURIComponent(currentUser.email || '')}`);
 
       if (!response.ok) {
         setPortalMode('student-self');
@@ -594,7 +595,7 @@ const StudentPortal = () => {
     }
 
     try {
-      const response = await fetch(`/api/student/settings?studentId=${studentId}`, { cache: 'no-store' });
+      const response = await apiFetch(`/api/student/settings?studentId=${studentId}`, { cache: 'no-store' });
       if (response.ok) {
         const data = await response.json();
         console.log('Leaderboard opt-in status for student:', studentId, '=', data.leaderboard_opt_in);
@@ -619,7 +620,7 @@ const StudentPortal = () => {
     
     try {
       console.log('Loading student data via API for student ID:', studentId);
-      const response = await fetch(`/api/admin/materials?studentId=${studentId}&userEmail=${encodeURIComponent(currentUser.email || '')}`);
+      const response = await apiFetch(`/api/admin/materials?studentId=${studentId}&userEmail=${encodeURIComponent(currentUser.email || '')}`);
       const result = await response.json();
 
       console.log('API materials response:', result);
@@ -633,7 +634,7 @@ const StudentPortal = () => {
       }
 
       // Load assignments via API (for admin mode)
-      const assignmentsResponse = await fetch(`/api/admin/assignments?studentId=${studentId}&userEmail=${encodeURIComponent(currentUser.email || '')}`);
+      const assignmentsResponse = await apiFetch(`/api/admin/assignments?studentId=${studentId}&userEmail=${encodeURIComponent(currentUser.email || '')}`);
       
       if (assignmentsResponse.ok) {
         const assignmentsResult = await assignmentsResponse.json();
@@ -649,7 +650,7 @@ const StudentPortal = () => {
       }
 
       // Load videos via API (for admin mode)
-      const videosResponse = await fetch(`/api/admin/videos?studentId=${studentId}&userEmail=${encodeURIComponent(currentUser.email || '')}`);
+      const videosResponse = await apiFetch(`/api/admin/videos?studentId=${studentId}&userEmail=${encodeURIComponent(currentUser.email || '')}`);
       
       if (videosResponse.ok) {
         const videosResult = await videosResponse.json();
@@ -683,7 +684,7 @@ const StudentPortal = () => {
       console.log('Loading student data for user ID:', userId);
       
       // Load materials via student API
-      const materialsResponse = await fetch(`/api/student/materials?studentId=${userId}`);
+      const materialsResponse = await apiFetch(`/api/student/materials?studentId=${userId}`);
       
       if (materialsResponse.ok) {
         const materialsResult = await materialsResponse.json();
@@ -700,7 +701,7 @@ const StudentPortal = () => {
       }
 
       // Load assignments via student API
-      const assignmentsResponse = await fetch(`/api/student/assignments?studentId=${userId}`);
+      const assignmentsResponse = await apiFetch(`/api/student/assignments?studentId=${userId}`);
       
       if (assignmentsResponse.ok) {
         const assignmentsResult = await assignmentsResponse.json();
@@ -716,7 +717,7 @@ const StudentPortal = () => {
       }
 
       // Load videos via student API
-      const videosResponse = await fetch(`/api/student/videos?studentId=${userId}`);
+      const videosResponse = await apiFetch(`/api/student/videos?studentId=${userId}`);
       
       if (videosResponse.ok) {
         const videosResult = await videosResponse.json();
@@ -739,7 +740,7 @@ const StudentPortal = () => {
   const loadHabits = async (studentId: string, year: number, month: number) => {
     try {
       setHabitLoading(true);
-      const response = await fetch(`/api/student/habits?studentId=${studentId}&year=${year}&month=${month + 1}`);
+      const response = await apiFetch(`/api/student/habits?studentId=${studentId}&year=${year}&month=${month + 1}`);
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
@@ -758,7 +759,7 @@ const StudentPortal = () => {
     if (!user || !isAdminMode) return;
     try {
       setHabitLoading(true);
-      const response = await fetch(`/api/admin/habits?studentId=${studentId}&userEmail=${encodeURIComponent(user.email)}&year=${year}&month=${month + 1}`);
+      const response = await apiFetch(`/api/admin/habits?studentId=${studentId}&userEmail=${encodeURIComponent(user.email)}&year=${year}&month=${month + 1}`);
       if (response.ok) {
         const result = await response.json();
         if (result.success) {
@@ -780,7 +781,7 @@ const StudentPortal = () => {
 
     try {
       if (isAdminMode && selectedStudentId) {
-        const response = await fetch(`/api/admin/habits?userEmail=${encodeURIComponent(user?.email || '')}`, {
+        const response = await apiFetch(`/api/admin/habits?userEmail=${encodeURIComponent(user?.email || '')}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ studentId: selectedStudentId, date: dateStr })
@@ -800,7 +801,7 @@ const StudentPortal = () => {
           }
         }
       } else if (user) {
-        const response = await fetch(`/api/student/habits?studentId=${user.id}`, {
+        const response = await apiFetch(`/api/student/habits?studentId=${user.id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ date: dateStr })
@@ -868,7 +869,7 @@ const StudentPortal = () => {
 
   const downloadMaterial = async (material: any) => {
     try {
-      const response = await fetch(`/api/materials/download?filePath=${encodeURIComponent(material.file_path)}&studentId=${isAdminMode ? selectedStudentId : user?.id}&userEmail=${encodeURIComponent(user?.email || '')}`);
+      const response = await apiFetch(`/api/materials/download?filePath=${encodeURIComponent(material.file_path)}&studentId=${isAdminMode ? selectedStudentId : user?.id}&userEmail=${encodeURIComponent(user?.email || '')}`);
       
       if (!response.ok) {
         throw new Error(`Download failed: ${response.statusText}`);
@@ -895,7 +896,7 @@ const StudentPortal = () => {
     }
 
     try {
-      const response = await fetch(`/api/materials/download?filePath=${encodeURIComponent(material.file_path)}&studentId=${isAdminMode ? selectedStudentId : user?.id}&userEmail=${encodeURIComponent(user?.email || '')}`);
+      const response = await apiFetch(`/api/materials/download?filePath=${encodeURIComponent(material.file_path)}&studentId=${isAdminMode ? selectedStudentId : user?.id}&userEmail=${encodeURIComponent(user?.email || '')}`);
       
       if (!response.ok) {
         throw new Error(`Load failed: ${response.statusText}`);
@@ -1237,7 +1238,7 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
       if (isAdminMode && selectedStudentId) {
         // Admin mode - use admin API
         const userEmail = encodeURIComponent(user?.email || '');
-        const response = await fetch(`/api/admin/assignments?userEmail=${userEmail}`, {
+        const response = await apiFetch(`/api/admin/assignments?userEmail=${userEmail}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -1261,7 +1262,7 @@ const MaterialViewer = ({ material, materialUrls, loadMaterialForViewing }: any)
         loadStudentDataViaAPI(selectedStudentId);
       } else if (user) {
         // Student mode - use student API
-        const response = await fetch(`/api/student/assignments?studentId=${user.id}`, {
+        const response = await apiFetch(`/api/student/assignments?studentId=${user.id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

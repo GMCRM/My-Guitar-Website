@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { canActForStudent } from '@/app/api/admin/_utils/teacherAuth';
 
 // Initialize Supabase client with anon key (RLS enforced)
 const supabase = createClient(
@@ -18,6 +19,10 @@ export async function GET(request: NextRequest) {
         { error: 'Missing required parameter: studentId' },
         { status: 400 }
       );
+    }
+
+    if (!(await canActForStudent(studentId))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     console.log('Fetching settings for student:', studentId);

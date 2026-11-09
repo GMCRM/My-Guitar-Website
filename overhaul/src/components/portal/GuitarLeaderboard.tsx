@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/apiFetch';
 import { useEffect, useState } from 'react';
 
 interface LeaderboardEntry {
@@ -48,7 +49,7 @@ export default function GuitarLeaderboard({ studentId }: GuitarLeaderboardProps)
       setError(null);
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `/api/leaderboard?year=${selectedYear}&month=${selectedMonth}&studentId=${studentId}`
         );
 

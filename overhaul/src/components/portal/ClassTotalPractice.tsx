@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/apiFetch';
 import { useEffect, useState } from 'react';
 
 interface ClassTotalPracticeProps {
@@ -18,7 +19,7 @@ export default function ClassTotalPractice({ studentId }: ClassTotalPracticeProp
       setError(null);
 
       try {
-        const response = await fetch(`/api/student/class-total?studentId=${studentId}`);
+        const response = await apiFetch(`/api/student/class-total?studentId=${studentId}`);
 
         if (response.status === 403) {
           setError('Class total access requires opt-in');

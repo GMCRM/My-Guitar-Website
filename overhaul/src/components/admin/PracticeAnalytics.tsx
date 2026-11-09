@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/apiFetch';
 import { useEffect, useState } from 'react';
 import { ChartBarIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
 import { supabase } from '@/lib/supabase';
@@ -52,7 +53,7 @@ export default function PracticeAnalytics() {
       setError(null);
 
       try {
-        const response = await fetch(`/api/admin/analytics/practice?userEmail=${encodeURIComponent(currentUserEmail)}`);
+        const response = await apiFetch(`/api/admin/analytics/practice?userEmail=${encodeURIComponent(currentUserEmail)}`);
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));

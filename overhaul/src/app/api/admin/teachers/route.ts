@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import type { Teacher, TeacherPermissions, Student } from '@/lib/supabase';
+import { isVerifiedSuperAdmin } from '@/app/api/admin/_utils/teacherAuth';
 
 // Create a service role client for admin operations
 const supabaseAdmin = createClient(
@@ -18,10 +19,9 @@ const supabaseAdmin = createClient(
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userEmail = searchParams.get('userEmail');
 
     // Verify super admin access
-    if (userEmail !== 'grantmatai@gmail.com') {
+    if (!(await isVerifiedSuperAdmin())) {
       return NextResponse.json(
         { error: 'Unauthorized - Super admin access required' },
         { status: 403 }
@@ -118,10 +118,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userEmail, studentId, permissions } = body;
+    const { studentId, permissions } = body;
 
     // Verify super admin access
-    if (userEmail !== 'grantmatai@gmail.com') {
+    if (!(await isVerifiedSuperAdmin())) {
       return NextResponse.json(
         { error: 'Unauthorized - Super admin access required' },
         { status: 403 }
@@ -222,10 +222,10 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userEmail, teacherId, permissions, studentAssignments, allowPortalStudentSelector, action } = body;
+    const { teacherId, permissions, studentAssignments, allowPortalStudentSelector, action } = body;
 
     // Verify super admin access (only super admin can modify teachers)
-    if (userEmail !== 'grantmatai@gmail.com') {
+    if (!(await isVerifiedSuperAdmin())) {
       return NextResponse.json(
         { error: 'Unauthorized - Super admin access required' },
         { status: 403 }
@@ -336,11 +336,10 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userEmail = searchParams.get('userEmail');
     const teacherId = searchParams.get('teacherId');
 
     // Verify super admin access
-    if (userEmail !== 'grantmatai@gmail.com') {
+    if (!(await isVerifiedSuperAdmin())) {
       return NextResponse.json(
         { error: 'Unauthorized - Super admin access required' },
         { status: 403 }

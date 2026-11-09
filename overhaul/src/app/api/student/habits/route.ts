@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { canActForStudent } from '@/app/api/admin/_utils/teacherAuth';
 
 // Create a service role client for student operations
 const supabaseAdmin = createClient(
@@ -25,6 +26,10 @@ export async function GET(request: NextRequest) {
         { error: 'Missing student ID' },
         { status: 400 }
       );
+    }
+
+    if (!(await canActForStudent(studentId))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     if (!year || !month) {
@@ -90,6 +95,10 @@ export async function POST(request: NextRequest) {
         { error: 'Missing student ID or date' },
         { status: 400 }
       );
+    }
+
+    if (!(await canActForStudent(studentId))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     console.log('Student API: Toggling habit for student:', studentId, 'date:', date);

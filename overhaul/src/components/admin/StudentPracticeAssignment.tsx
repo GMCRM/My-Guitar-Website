@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/apiFetch';
 import React, { useState, useEffect } from 'react';
 import { CheckIcon, MusicalNoteIcon, SpeakerWaveIcon } from '@heroicons/react/24/outline';
 import type { BackingTrack, StrummingPattern, MusicalKey } from '@/lib/types/practice';
@@ -35,10 +36,10 @@ export default function StudentPracticeAssignment({ studentId }: Props) {
       const userEmail = encodeURIComponent(user.email);
 
       const [tracksRes, patternsRes, keysRes, assignRes] = await Promise.all([
-        fetch(`/api/admin/practice/tracks?userEmail=${userEmail}`),
-        fetch(`/api/admin/practice/patterns?userEmail=${userEmail}`),
-        fetch(`/api/admin/practice/keys?userEmail=${userEmail}`),
-        fetch(`/api/admin/practice/assign?userEmail=${userEmail}&studentId=${studentId}`),
+        apiFetch(`/api/admin/practice/tracks?userEmail=${userEmail}`),
+        apiFetch(`/api/admin/practice/patterns?userEmail=${userEmail}`),
+        apiFetch(`/api/admin/practice/keys?userEmail=${userEmail}`),
+        apiFetch(`/api/admin/practice/assign?userEmail=${userEmail}&studentId=${studentId}`),
       ]);
 
       const [tracksJson, patternsJson, keysJson, assignJson] = await Promise.all([
@@ -102,7 +103,7 @@ export default function StudentPracticeAssignment({ studentId }: Props) {
         throw new Error('Not authenticated');
       }
 
-      const res = await fetch('/api/admin/practice/assign', {
+      const res = await apiFetch('/api/admin/practice/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

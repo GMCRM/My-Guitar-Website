@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/apiFetch';
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -257,7 +258,7 @@ const AdminDashboardContent = () => {
         throw new Error('Super admin access required');
       }
 
-      const response = await fetch(`/api/admin/teachers?userEmail=${user.email}`);
+      const response = await apiFetch(`/api/admin/teachers?userEmail=${user.email}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -286,7 +287,7 @@ const AdminDashboardContent = () => {
         throw new Error('Super admin access required');
       }
 
-      const response = await fetch('/api/admin/teachers', {
+      const response = await apiFetch('/api/admin/teachers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -335,7 +336,7 @@ const AdminDashboardContent = () => {
         throw new Error('Super admin access required');
       }
 
-      const response = await fetch('/api/admin/teachers', {
+      const response = await apiFetch('/api/admin/teachers', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -374,7 +375,7 @@ const AdminDashboardContent = () => {
         throw new Error('Super admin access required');
       }
 
-      const response = await fetch('/api/admin/teachers', {
+      const response = await apiFetch('/api/admin/teachers', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -415,7 +416,7 @@ const AdminDashboardContent = () => {
         throw new Error('Super admin access required');
       }
 
-      const response = await fetch('/api/admin/teachers', {
+      const response = await apiFetch('/api/admin/teachers', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -460,7 +461,7 @@ const AdminDashboardContent = () => {
         throw new Error('Super admin access required');
       }
 
-      const response = await fetch(`/api/admin/teachers?userEmail=${user.email}&teacherId=${teacherId}`, {
+      const response = await apiFetch(`/api/admin/teachers?userEmail=${user.email}&teacherId=${teacherId}`, {
         method: 'DELETE',
       });
 
@@ -594,7 +595,7 @@ const AdminDashboardContent = () => {
     }
 
     try {
-      const response = await fetch('/api/admin/youtube-subscribers');
+      const response = await apiFetch('/api/admin/youtube-subscribers');
       const data = await response.json();
       setStats(prevStats => ({ ...prevStats, subscribers: data.count ?? null }));
     } catch (error) {
@@ -610,7 +611,7 @@ const AdminDashboardContent = () => {
         return;
       }
 
-      const response = await fetch(`/api/admin/music-videos?userEmail=${encodeURIComponent(userEmail)}`);
+      const response = await apiFetch(`/api/admin/music-videos?userEmail=${encodeURIComponent(userEmail)}`);
       const result = await response.json();
 
       if (!response.ok || !result?.success) {
@@ -642,7 +643,7 @@ const AdminDashboardContent = () => {
         return;
       }
 
-      const response = await fetch(`/api/admin/music-audio?userEmail=${encodeURIComponent(userEmail)}`);
+      const response = await apiFetch(`/api/admin/music-audio?userEmail=${encodeURIComponent(userEmail)}`);
       const result = await response.json();
 
       if (!response.ok || !result?.success) {
@@ -673,7 +674,7 @@ const AdminDashboardContent = () => {
   const loadMessages = async (emailOverride?: string) => {
     try {
       const userEmail = emailOverride || currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
-      const response = await fetch(`/api/contact?userEmail=${encodeURIComponent(userEmail)}`);
+      const response = await apiFetch(`/api/contact?userEmail=${encodeURIComponent(userEmail)}`);
       if (response.ok) {
         const data = await response.json();
         // Transform the data to match the expected format
@@ -712,7 +713,7 @@ const AdminDashboardContent = () => {
       }
 
       // Load all users from API route
-      const response = await fetch(`/api/admin/students?userEmail=${encodeURIComponent(userEmail)}`);
+      const response = await apiFetch(`/api/admin/students?userEmail=${encodeURIComponent(userEmail)}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -730,7 +731,7 @@ const AdminDashboardContent = () => {
 
         for (const student of studentsList) {
           try {
-            const optInResponse = await fetch(`/api/student/settings?studentId=${student.id}`);
+            const optInResponse = await apiFetch(`/api/student/settings?studentId=${student.id}`);
             if (optInResponse.ok) {
               const optInData = await optInResponse.json();
               leaderboardOptIns.set(student.id, optInData.leaderboard_opt_in || false);
@@ -772,7 +773,7 @@ const AdminDashboardContent = () => {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
 
       // Create new user via API route
-      const response = await fetch('/api/admin/students', {
+      const response = await apiFetch('/api/admin/students', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -843,7 +844,7 @@ const AdminDashboardContent = () => {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
 
       // Update user via API route
-      const response = await fetch(`/api/admin/students/${editingStudent.id}`, {
+      const response = await apiFetch(`/api/admin/students/${editingStudent.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -884,7 +885,7 @@ const AdminDashboardContent = () => {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
 
       // Delete user via API route
-      const response = await fetch(`/api/admin/students/${student.id}?userEmail=${encodeURIComponent(userEmail)}`, {
+      const response = await apiFetch(`/api/admin/students/${student.id}?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'DELETE',
       });
 
@@ -916,7 +917,7 @@ const AdminDashboardContent = () => {
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
       console.log(`Toggling leaderboard opt-in for ${studentId} from ${currentOptIn} to ${!currentOptIn}`);
-      const response = await fetch(`/api/admin/students/${studentId}/leaderboard`, {
+      const response = await apiFetch(`/api/admin/students/${studentId}/leaderboard`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -950,7 +951,7 @@ const AdminDashboardContent = () => {
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
       console.log(`Toggling analytics opt-in for ${studentId} from ${currentOptIn} to ${!currentOptIn}`);
-      const response = await fetch(`/api/admin/students/${studentId}/analytics`, {
+      const response = await apiFetch(`/api/admin/students/${studentId}/analytics`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -983,7 +984,7 @@ const AdminDashboardContent = () => {
   const toggleClassTotalIncluded = async (studentId: string, currentIncluded: boolean) => {
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
-      const response = await fetch(`/api/admin/students/${studentId}/class-total-included`, {
+      const response = await apiFetch(`/api/admin/students/${studentId}/class-total-included`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1012,7 +1013,7 @@ const AdminDashboardContent = () => {
   const toggleClassTotalVisible = async (studentId: string, currentVisible: boolean) => {
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
-      const response = await fetch(`/api/admin/students/${studentId}/class-total-visible`, {
+      const response = await apiFetch(`/api/admin/students/${studentId}/class-total-visible`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1040,7 +1041,7 @@ const AdminDashboardContent = () => {
 
   const loadClassTotalMilestone = async () => {
     try {
-      const response = await fetch('/api/admin/class-total-milestone');
+      const response = await apiFetch('/api/admin/class-total-milestone');
       if (response.ok) {
         const data = await response.json();
         setClassTotalMilestone(data.milestone || 500);
@@ -1061,7 +1062,7 @@ const AdminDashboardContent = () => {
     setUpdatingMilestone(true);
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
-      const response = await fetch('/api/admin/class-total-milestone', {
+      const response = await apiFetch('/api/admin/class-total-milestone', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1102,7 +1103,7 @@ const AdminDashboardContent = () => {
       console.log('Loading materials via admin API for student:', studentId);
       
       // Use admin API route to load materials (bypasses RLS issues)
-      const response = await fetch(`/api/admin/materials?studentId=${studentId}&userEmail=${user.email}`);
+      const response = await apiFetch(`/api/admin/materials?studentId=${studentId}&userEmail=${user.email}`);
       
       const result = await response.json();
 
@@ -1126,7 +1127,7 @@ const AdminDashboardContent = () => {
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
       if (!userEmail) return;
-      const response = await fetch(`/api/admin/assignments?studentId=${studentId}&userEmail=${encodeURIComponent(userEmail)}`);
+      const response = await apiFetch(`/api/admin/assignments?studentId=${studentId}&userEmail=${encodeURIComponent(userEmail)}`);
       
       if (!response.ok) {
         throw new Error('Failed to load assignments');
@@ -1152,7 +1153,7 @@ const AdminDashboardContent = () => {
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
       if (!userEmail) return;
-      const response = await fetch(`/api/admin/videos?studentId=${studentId}&userEmail=${encodeURIComponent(userEmail)}`);
+      const response = await apiFetch(`/api/admin/videos?studentId=${studentId}&userEmail=${encodeURIComponent(userEmail)}`);
       
       if (!response.ok) {
         throw new Error('Failed to load videos');
@@ -1201,7 +1202,7 @@ const AdminDashboardContent = () => {
       formData.append('userEmail', user.email);
 
       // Upload via API route (uses service role, bypasses RLS issues)
-      const response = await fetch('/api/admin/upload', {
+      const response = await apiFetch('/api/admin/upload', {
         method: 'POST',
         body: formData
       });
@@ -1250,7 +1251,7 @@ const AdminDashboardContent = () => {
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
       if (!userEmail) return;
-      const response = await fetch(`/api/admin/assignments?userEmail=${encodeURIComponent(userEmail)}`, {
+      const response = await apiFetch(`/api/admin/assignments?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1312,7 +1313,7 @@ const AdminDashboardContent = () => {
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
       if (!userEmail) return;
-      const response = await fetch(`/api/admin/assignments?userEmail=${encodeURIComponent(userEmail)}`, {
+      const response = await apiFetch(`/api/admin/assignments?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1367,7 +1368,7 @@ const AdminDashboardContent = () => {
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
       if (!userEmail) return;
-      const response = await fetch(`/api/admin/materials/${materialId}?userEmail=${encodeURIComponent(userEmail)}`, {
+      const response = await apiFetch(`/api/admin/materials/${materialId}?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'DELETE'
       });
 
@@ -1396,7 +1397,7 @@ const AdminDashboardContent = () => {
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
       if (!userEmail) return;
-      const response = await fetch(`/api/admin/assignments/${assignmentId}?userEmail=${encodeURIComponent(userEmail)}`, {
+      const response = await apiFetch(`/api/admin/assignments/${assignmentId}?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'DELETE'
       });
 
@@ -1434,7 +1435,7 @@ const AdminDashboardContent = () => {
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
       if (!userEmail) return;
-      const response = await fetch(`/api/admin/videos?userEmail=${encodeURIComponent(userEmail)}`, {
+      const response = await apiFetch(`/api/admin/videos?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1473,7 +1474,7 @@ const AdminDashboardContent = () => {
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email;
       if (!userEmail) return;
-      const response = await fetch(`/api/admin/videos?userEmail=${encodeURIComponent(userEmail)}&videoId=${videoId}`, {
+      const response = await apiFetch(`/api/admin/videos?userEmail=${encodeURIComponent(userEmail)}&videoId=${videoId}`, {
         method: 'DELETE',
       });
 
@@ -1505,7 +1506,7 @@ const AdminDashboardContent = () => {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`/api/admin/music-videos?userEmail=${encodeURIComponent(userEmail)}`, {
+      const response = await apiFetch(`/api/admin/music-videos?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1580,7 +1581,7 @@ const AdminDashboardContent = () => {
         formData.append('title', normalizedTitle);
       }
 
-      const response = await fetch('/api/admin/music-audio', {
+      const response = await apiFetch('/api/admin/music-audio', {
         method: 'POST',
         body: formData
       });
@@ -1612,7 +1613,7 @@ const AdminDashboardContent = () => {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`/api/admin/music-audio?userEmail=${encodeURIComponent(userEmail)}&trackId=${trackId}`, {
+      const response = await apiFetch(`/api/admin/music-audio?userEmail=${encodeURIComponent(userEmail)}&trackId=${trackId}`, {
         method: 'DELETE'
       });
       const result = await response.json();
@@ -1658,7 +1659,7 @@ const AdminDashboardContent = () => {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`/api/admin/music-audio?userEmail=${encodeURIComponent(userEmail)}`, {
+      const response = await apiFetch(`/api/admin/music-audio?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -1718,7 +1719,7 @@ const AdminDashboardContent = () => {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`/api/admin/music-audio?userEmail=${encodeURIComponent(userEmail)}`, {
+      const response = await apiFetch(`/api/admin/music-audio?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -1748,7 +1749,7 @@ const AdminDashboardContent = () => {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`/api/admin/music-videos?userEmail=${encodeURIComponent(userEmail)}&videoId=${videoId}`, {
+      const response = await apiFetch(`/api/admin/music-videos?userEmail=${encodeURIComponent(userEmail)}&videoId=${videoId}`, {
         method: 'DELETE'
       });
       const result = await response.json();
@@ -1789,7 +1790,7 @@ const AdminDashboardContent = () => {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`/api/admin/music-videos?userEmail=${encodeURIComponent(userEmail)}`, {
+      const response = await apiFetch(`/api/admin/music-videos?userEmail=${encodeURIComponent(userEmail)}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -1815,7 +1816,7 @@ const AdminDashboardContent = () => {
   const markMessageAsRead = async (messageId: string) => {
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
-      const response = await fetch('/api/contact', {
+      const response = await apiFetch('/api/contact', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1846,7 +1847,7 @@ const AdminDashboardContent = () => {
 
     try {
       const userEmail = currentUserEmail || (await supabase.auth.getUser()).data.user?.email || '';
-      const response = await fetch('/api/contact', {
+      const response = await apiFetch('/api/contact', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

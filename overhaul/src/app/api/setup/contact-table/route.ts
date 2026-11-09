@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isVerifiedSuperAdmin } from '@/app/api/admin/_utils/teacherAuth';
 
 // Create admin client with service role key (server-side only)
 const supabaseAdmin = createClient(
@@ -15,6 +16,10 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await isVerifiedSuperAdmin())) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
     console.log('Setting up contact_messages table...');
     
     // Create the table using direct SQL execution

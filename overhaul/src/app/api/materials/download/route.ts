@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { canActForStudent } from '@/app/api/admin/_utils/teacherAuth';
 
 // Create a service role client for admin operations
 const supabaseAdmin = createClient(
@@ -18,13 +19,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const filePath = searchParams.get('filePath');
     const studentId = searchParams.get('studentId');
-    const userEmail = searchParams.get('userEmail');
 
-    if (!filePath || !studentId || !userEmail) {
+    if (!filePath || !studentId) {
       return NextResponse.json(
         { error: 'Missing required parameters' },
         { status: 400 }
       );
+    }
+
+    if (!(await canActForStudent(studentId))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Verify the user has access to this material
@@ -40,21 +44,6 @@ export async function GET(request: NextRequest) {
         { error: 'Material not found or access denied' },
         { status: 404 }
       );
-    }
-
-    // Check if user is admin or the student who owns the material
-    const isAdmin = userEmail === process.env.NEXT_PUBLIC_BLOG_ADMIN_EMAIL;
-    
-    // Get the user's actual student ID from auth
-    const supabaseClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
-    if (!isAdmin) {
-      // For non-admin users, verify they are requesting their own materials
-      // This would require additional verification logic
-      // For now, we'll trust the client-side verification
     }
 
     // Download the file from storage using service role

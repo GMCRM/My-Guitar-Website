@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { headers } from 'next/headers';
 
 export type PermissionKey =
   | 'can_manage_blog'
@@ -53,10 +54,33 @@ const normalizePermissions = (permissions: any): TeacherPermissions => ({
   can_manage_messages: Boolean(permissions?.can_manage_messages)
 });
 
-export async function resolveActorContext(userEmail?: string | null): Promise<ActorContext | null> {
-  if (!userEmail) {
+/** The signed-in user, proven by the Supabase token on this request. */
+export async function getVerifiedUser(): Promise<{ id: string; email: string } | null> {
+  const authorization = (await headers()).get('authorization');
+  const token = authorization?.match(/^Bearer (.+)$/)?.[1];
+  if (!token) {
     return null;
   }
+
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !data.user?.email) {
+    return null;
+  }
+
+  return { id: data.user.id, email: data.user.email };
+}
+
+/**
+ * Permissions of the verified caller. Any email passed by a route is ignored,
+ * because it comes from the browser and can be forged.
+ */
+export async function resolveActorContext(_claimedEmail?: string | null): Promise<ActorContext | null> {
+  const user = await getVerifiedUser();
+  if (!user) {
+    return null;
+  }
+
+  const userEmail = user.email;
 
   if (userEmail === SUPER_ADMIN_EMAIL) {
     return {
@@ -140,4 +164,23 @@ export async function canAccessStudent(
   }
 
   return student.assigned_teacher_id === actor.teacherId;
+}
+
+export async function isVerifiedSuperAdmin(): Promise<boolean> {
+  const actor = await resolveActorContext();
+  return Boolean(actor?.isSuperAdmin);
+}
+
+/** True for the student themselves, or a teacher or admin with access to that student. */
+export async function canActForStudent(studentId: string): Promise<boolean> {
+  const user = await getVerifiedUser();
+  if (!user) {
+    return false;
+  }
+  if (user.id === studentId) {
+    return true;
+  }
+
+  const actor = await resolveActorContext();
+  return Boolean(actor && (await canAccessStudent(actor, studentId)));
 }

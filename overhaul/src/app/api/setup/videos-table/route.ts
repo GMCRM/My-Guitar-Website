@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isVerifiedSuperAdmin } from '@/app/api/admin/_utils/teacherAuth';
 
 // Create Supabase client with service role (bypasses RLS)
 const supabase = createClient(
@@ -15,11 +16,8 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { adminEmail } = body;
-
     // Verify admin access
-    if (!adminEmail || adminEmail !== 'grantmatai@gmail.com') {
+    if (!(await isVerifiedSuperAdmin())) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

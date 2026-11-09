@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/apiFetch';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -74,7 +75,7 @@ export default function NewBlogPost() {
       formData.append('userEmail', user.email || '');
 
       // Upload via admin API endpoint
-      const response = await fetch('/api/admin/blog-images', {
+      const response = await apiFetch('/api/admin/blog-images', {
         method: 'POST',
         body: formData
       });

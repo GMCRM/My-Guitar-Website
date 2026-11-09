@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { canActForStudent } from '@/app/api/admin/_utils/teacherAuth';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,6 +14,10 @@ export async function GET(request: NextRequest) {
 
   if (!studentId) {
     return NextResponse.json({ error: 'studentId is required' }, { status: 400 });
+  }
+
+  if (!(await canActForStudent(studentId))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
   try {

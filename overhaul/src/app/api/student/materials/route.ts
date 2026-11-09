@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { canActForStudent } from '@/app/api/admin/_utils/teacherAuth';
 
 // Create a service role client to bypass RLS for authorized student access
 const supabaseAdmin = createClient(
@@ -23,6 +24,10 @@ export async function GET(request: NextRequest) {
         { error: 'Missing student ID' },
         { status: 400 }
       );
+    }
+
+    if (!(await canActForStudent(studentId))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     console.log('Student API: Loading materials for student:', studentId);

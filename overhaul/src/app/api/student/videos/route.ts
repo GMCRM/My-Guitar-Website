@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { canActForStudent } from '@/app/api/admin/_utils/teacherAuth';
 
 // Create Supabase client
 const supabase = createClient(
@@ -22,6 +23,10 @@ export async function GET(request: NextRequest) {
 
     if (!studentId) {
       return NextResponse.json({ error: 'Student ID is required' }, { status: 400 });
+    }
+
+    if (!(await canActForStudent(studentId))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Fetch videos for the student

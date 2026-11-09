@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/apiFetch';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   PlusIcon,
@@ -57,19 +58,19 @@ export default function PracticeManagement() {
   };
 
   const loadTracks = async () => {
-    const res = await fetch(`/api/admin/practice/tracks?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`);
+    const res = await apiFetch(`/api/admin/practice/tracks?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`);
     const json = await res.json();
     if (json.success) setTracks(json.data);
   };
 
   const loadPatterns = async () => {
-    const res = await fetch(`/api/admin/practice/patterns?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`);
+    const res = await apiFetch(`/api/admin/practice/patterns?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`);
     const json = await res.json();
     if (json.success) setPatterns(json.data);
   };
 
   const loadKeys = async () => {
-    const res = await fetch(`/api/admin/practice/keys?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`);
+    const res = await apiFetch(`/api/admin/practice/keys?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`);
     const json = await res.json();
     if (json.success) setKeys(json.data);
   };
@@ -82,7 +83,7 @@ export default function PracticeManagement() {
       formData.append('file', file);
       formData.append('userEmail', ADMIN_EMAIL);
 
-      const res = await fetch('/api/admin/practice/upload', { method: 'POST', body: formData });
+      const res = await apiFetch('/api/admin/practice/upload', { method: 'POST', body: formData });
       const json = await res.json();
       if (json.success) {
         setUploadedAudioUrl(json.data.publicUrl);
@@ -102,7 +103,7 @@ export default function PracticeManagement() {
       alert('Please provide a name and upload an audio file');
       return;
     }
-    const res = await fetch('/api/admin/practice/tracks', {
+    const res = await apiFetch('/api/admin/practice/tracks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newTrackName, audio_url: uploadedAudioUrl, userEmail: ADMIN_EMAIL }),
@@ -121,7 +122,7 @@ export default function PracticeManagement() {
 
   const updateTrack = async () => {
     if (!editingTrack) return;
-    const res = await fetch(`/api/admin/practice/tracks/${editingTrack.id}`, {
+    const res = await apiFetch(`/api/admin/practice/tracks/${editingTrack.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -141,7 +142,7 @@ export default function PracticeManagement() {
 
   const deleteTrack = async (id: string) => {
     if (!confirm('Delete this backing track? This will also remove it from all student assignments.')) return;
-    const res = await fetch(`/api/admin/practice/tracks/${id}?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/admin/practice/tracks/${id}?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`, { method: 'DELETE' });
     const json = await res.json();
     if (json.success) loadTracks();
     else alert(json.error);
@@ -153,7 +154,7 @@ export default function PracticeManagement() {
       alert('Please provide a pattern string');
       return;
     }
-    const res = await fetch('/api/admin/practice/patterns', {
+    const res = await apiFetch('/api/admin/practice/patterns', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newPatternName || null, pattern_string: newPatternString, userEmail: ADMIN_EMAIL }),
@@ -171,7 +172,7 @@ export default function PracticeManagement() {
 
   const updatePattern = async () => {
     if (!editingPattern) return;
-    const res = await fetch(`/api/admin/practice/patterns/${editingPattern.id}`, {
+    const res = await apiFetch(`/api/admin/practice/patterns/${editingPattern.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -191,7 +192,7 @@ export default function PracticeManagement() {
 
   const deletePattern = async (id: string) => {
     if (!confirm('Delete this strumming pattern?')) return;
-    const res = await fetch(`/api/admin/practice/patterns/${id}?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/admin/practice/patterns/${id}?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`, { method: 'DELETE' });
     const json = await res.json();
     if (json.success) loadPatterns();
     else alert(json.error);
@@ -203,7 +204,7 @@ export default function PracticeManagement() {
       alert('All fields are required');
       return;
     }
-    const res = await fetch('/api/admin/practice/keys', {
+    const res = await apiFetch('/api/admin/practice/keys', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -229,7 +230,7 @@ export default function PracticeManagement() {
 
   const updateKey = async () => {
     if (!editingKey) return;
-    const res = await fetch(`/api/admin/practice/keys/${editingKey.id}`, {
+    const res = await apiFetch(`/api/admin/practice/keys/${editingKey.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -251,7 +252,7 @@ export default function PracticeManagement() {
 
   const deleteKey = async (id: string) => {
     if (!confirm('Delete this musical key?')) return;
-    const res = await fetch(`/api/admin/practice/keys/${id}?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/admin/practice/keys/${id}?userEmail=${encodeURIComponent(ADMIN_EMAIL)}`, { method: 'DELETE' });
     const json = await res.json();
     if (json.success) loadKeys();
     else alert(json.error);

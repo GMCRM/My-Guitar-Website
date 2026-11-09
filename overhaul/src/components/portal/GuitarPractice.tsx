@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/apiFetch';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -34,7 +35,7 @@ export default function GuitarPractice({ userId }: Props) {
   const loadPracticeData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/student/practice?studentId=${userId}`);
+      const res = await apiFetch(`/api/student/practice?studentId=${userId}`);
       const json = await res.json();
       if (json.success) {
         setTracks(json.data.tracks);

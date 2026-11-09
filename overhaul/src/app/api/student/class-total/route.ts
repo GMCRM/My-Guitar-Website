@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { canActForStudent } from '@/app/api/admin/_utils/teacherAuth';
 
 // Initialize Supabase admin client (needs to see all included students regardless of RLS)
 const supabaseAdmin = createClient(
@@ -23,6 +24,10 @@ export async function GET(request: NextRequest) {
         { error: 'Missing required parameter: studentId' },
         { status: 400 }
       );
+    }
+
+    if (!(await canActForStudent(studentId))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Check if requesting student has class total visibility enabled

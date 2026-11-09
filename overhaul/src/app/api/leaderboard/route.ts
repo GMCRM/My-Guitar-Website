@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { canActForStudent } from '@/app/api/admin/_utils/teacherAuth';
 
 // Initialize Supabase client with anon key for student verification
 const supabase = createClient(
@@ -34,6 +35,10 @@ export async function GET(request: NextRequest) {
         { error: 'Missing required parameters: year, month, studentId' },
         { status: 400 }
       );
+    }
+
+    if (!(await canActForStudent(studentId))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const yearNum = parseInt(year);
