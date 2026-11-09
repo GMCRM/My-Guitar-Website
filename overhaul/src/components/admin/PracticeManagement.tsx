@@ -272,7 +272,7 @@ export default function PracticeManagement() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-500" />
         <span className="ml-3 text-gray-600">Loading practice data...</span>
       </div>
     );
@@ -280,8 +280,8 @@ export default function PracticeManagement() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-gray-800">Guitar Practice Configuration</h2>
+      <div className="admin-section-header">
+        <h2 className="admin-section-title">Guitar Practice Configuration</h2>
       </div>
 
       {/* Sub-tabs */}
@@ -313,7 +313,7 @@ export default function PracticeManagement() {
           {!showCreateTrack && (
             <button
               onClick={() => setShowCreateTrack(true)}
-              className="mb-4 flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="admin-btn admin-btn-primary mb-4"
             >
               <PlusIcon className="h-4 w-4 mr-2" />
               Add Backing Track
@@ -322,7 +322,7 @@ export default function PracticeManagement() {
 
           {/* Create Form */}
           {showCreateTrack && (
-            <div className="mb-6 p-4 rounded-lg border-2 border-green-200 bg-green-50">
+            <div className="admin-card mb-6">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">New Backing Track</h3>
               <div className="space-y-3">
                 <div>
@@ -332,7 +332,7 @@ export default function PracticeManagement() {
                     value={newTrackName}
                     onChange={(e) => setNewTrackName(e.target.value)}
                     placeholder="e.g. Slow Blues Groove"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full admin-input"
                   />
                 </div>
                 <div>
@@ -345,22 +345,22 @@ export default function PracticeManagement() {
                       const f = e.target.files?.[0];
                       if (f) handleAudioUpload(f);
                     }}
-                    className="w-full p-2 border border-gray-300 rounded-md"
+                    className="w-full admin-input"
                     disabled={uploadingAudio}
                   />
-                  {uploadingAudio && <p className="text-sm text-blue-600 mt-1">Uploading...</p>}
+                  {uploadingAudio && <p className="text-sm text-gray-600 mt-1">Uploading...</p>}
                   {uploadedAudioUrl && (
                     <div className="mt-2">
-                      <p className="text-sm text-green-600 mb-1">✓ Uploaded</p>
+                      <p className="text-sm text-gray-700 mb-1">Uploaded</p>
                       <audio src={uploadedAudioUrl} controls className="w-full h-8" />
                     </div>
                   )}
                 </div>
                 <div className="flex space-x-2">
-                  <button onClick={createTrack} disabled={!newTrackName || !uploadedAudioUrl} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                  <button onClick={createTrack} disabled={!newTrackName || !uploadedAudioUrl} className="admin-btn admin-btn-primary">
                     <CheckIcon className="h-4 w-4 mr-1" /> Save
                   </button>
-                  <button onClick={() => { setShowCreateTrack(false); setNewTrackName(''); setUploadedAudioUrl(''); }} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                  <button onClick={() => { setShowCreateTrack(false); setNewTrackName(''); setUploadedAudioUrl(''); }} className="admin-btn admin-btn-secondary">
                     Cancel
                   </button>
                 </div>
@@ -371,23 +371,23 @@ export default function PracticeManagement() {
           {/* Tracks List */}
           <div className="space-y-2">
             {tracks.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No backing tracks yet. Add one above.</p>
+              <p className="admin-empty">No backing tracks yet. Add one above.</p>
             ) : (
               tracks.map((track) => (
-                <div key={track.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:shadow-sm transition-shadow">
+                <div key={track.id} className="admin-row">
                   {editingTrack?.id === track.id ? (
                     <div className="flex-1 mr-3">
                       <input
                         type="text"
                         value={editingTrack.name}
                         onChange={(e) => setEditingTrack({ ...editingTrack, name: e.target.value })}
-                        className="w-full p-1 border border-gray-300 rounded text-sm"
+                        className="w-full admin-input admin-input-sm"
                       />
                       <div className="flex space-x-2 mt-2">
-                        <button onClick={updateTrack} className="text-green-600 hover:text-green-800 text-sm flex items-center">
+                        <button onClick={updateTrack} className="admin-btn admin-btn-primary admin-btn-sm">
                           <CheckIcon className="h-4 w-4 mr-1" /> Save
                         </button>
-                        <button onClick={() => setEditingTrack(null)} className="text-gray-500 hover:text-gray-700 text-sm">
+                        <button onClick={() => setEditingTrack(null)} className="admin-btn admin-btn-secondary admin-btn-sm">
                           Cancel
                         </button>
                       </div>
@@ -395,17 +395,17 @@ export default function PracticeManagement() {
                   ) : (
                     <>
                       <div className="flex items-center flex-1 min-w-0">
-                        <SpeakerWaveIcon className="h-5 w-5 text-green-600 mr-3 flex-shrink-0" />
+                        <SpeakerWaveIcon className="h-5 w-5 text-gray-500 mr-3 flex-shrink-0" />
                         <div className="min-w-0">
                           <p className="font-medium text-gray-800 truncate">{track.name}</p>
                           <audio src={track.audio_url} controls className="mt-1 h-8 w-full max-w-xs" />
                         </div>
                       </div>
                       <div className="flex items-center space-x-2 ml-3">
-                        <button onClick={() => setEditingTrack({ ...track })} className="text-blue-600 hover:text-blue-800 p-1">
+                        <button onClick={() => setEditingTrack({ ...track })} className="admin-icon-btn">
                           <PencilIcon className="h-4 w-4" />
                         </button>
-                        <button onClick={() => deleteTrack(track.id)} className="text-red-600 hover:text-red-800 p-1">
+                        <button onClick={() => deleteTrack(track.id)} className="admin-icon-btn admin-icon-btn-danger">
                           <TrashIcon className="h-4 w-4" />
                         </button>
                       </div>
@@ -424,7 +424,7 @@ export default function PracticeManagement() {
           {!showCreatePattern && (
             <button
               onClick={() => setShowCreatePattern(true)}
-              className="mb-4 flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="admin-btn admin-btn-primary mb-4"
             >
               <PlusIcon className="h-4 w-4 mr-2" />
               Add Strumming Pattern
@@ -432,7 +432,7 @@ export default function PracticeManagement() {
           )}
 
           {showCreatePattern && (
-            <div className="mb-6 p-4 rounded-lg border-2 border-green-200 bg-green-50">
+            <div className="admin-card mb-6">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">New Strumming Pattern</h3>
               <div className="space-y-3">
                 <div>
@@ -442,18 +442,18 @@ export default function PracticeManagement() {
                     value={newPatternName}
                     onChange={(e) => setNewPatternName(e.target.value)}
                     placeholder="e.g. Basic Down-Up"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
+                    className="w-full admin-input"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Pattern String *</label>
                   <div className="flex items-center space-x-2 mb-2">
-                    <button onClick={() => appendArrow('↓')} className="px-3 py-1 bg-white border border-gray-300 rounded-md hover:bg-gray-100 text-lg font-bold">↓</button>
-                    <button onClick={() => appendArrow('↑')} className="px-3 py-1 bg-white border border-gray-300 rounded-md hover:bg-gray-100 text-lg font-bold">↑</button>
-                    <button onClick={() => appendArrow('x')} className="px-3 py-1 bg-white border border-gray-300 rounded-md hover:bg-gray-100 text-lg font-bold">x</button>
+                    <button onClick={() => appendArrow('↓')} className="admin-btn admin-btn-secondary admin-btn-sm">↓</button>
+                    <button onClick={() => appendArrow('↑')} className="admin-btn admin-btn-secondary admin-btn-sm">↑</button>
+                    <button onClick={() => appendArrow('x')} className="admin-btn admin-btn-secondary admin-btn-sm">x</button>
                     <button
                       onClick={() => setNewPatternString('')}
-                      className="px-3 py-1 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 text-sm text-red-600"
+                      className="admin-btn admin-btn-danger-outline admin-btn-sm"
                     >
                       Clear
                     </button>
@@ -463,14 +463,14 @@ export default function PracticeManagement() {
                     value={newPatternString}
                     onChange={(e) => setNewPatternString(e.target.value)}
                     placeholder="↓ ↓ ↑ ↑ ↓"
-                    className="w-full p-2 border border-gray-300 rounded-md font-mono text-lg focus:ring-2 focus:ring-green-500"
+                    className="w-full admin-input"
                   />
                 </div>
                 <div className="flex space-x-2">
-                  <button onClick={createPattern} disabled={!newPatternString} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                  <button onClick={createPattern} disabled={!newPatternString} className="admin-btn admin-btn-primary">
                     <CheckIcon className="h-4 w-4 mr-1" /> Save
                   </button>
-                  <button onClick={() => { setShowCreatePattern(false); setNewPatternName(''); setNewPatternString(''); }} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                  <button onClick={() => { setShowCreatePattern(false); setNewPatternName(''); setNewPatternString(''); }} className="admin-btn admin-btn-secondary">
                     Cancel
                   </button>
                 </div>
@@ -480,10 +480,10 @@ export default function PracticeManagement() {
 
           <div className="space-y-2">
             {patterns.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No strumming patterns yet.</p>
+              <p className="admin-empty">No strumming patterns yet.</p>
             ) : (
               patterns.map((pattern) => (
-                <div key={pattern.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:shadow-sm transition-shadow">
+                <div key={pattern.id} className="admin-row">
                   {editingPattern?.id === pattern.id ? (
                     <div className="flex-1 mr-3 space-y-2">
                       <input
@@ -491,24 +491,24 @@ export default function PracticeManagement() {
                         value={editingPattern.name || ''}
                         onChange={(e) => setEditingPattern({ ...editingPattern, name: e.target.value })}
                         placeholder="Pattern name"
-                        className="w-full p-1 border border-gray-300 rounded text-sm"
+                        className="w-full admin-input admin-input-sm"
                       />
                       <div className="flex items-center space-x-2">
-                        <button onClick={() => appendArrow('↓')} className="px-2 py-0.5 bg-gray-100 border rounded text-lg">↓</button>
-                        <button onClick={() => appendArrow('↑')} className="px-2 py-0.5 bg-gray-100 border rounded text-lg">↑</button>
-                        <button onClick={() => appendArrow('x')} className="px-2 py-0.5 bg-gray-100 border rounded text-lg">x</button>
+                        <button onClick={() => appendArrow('↓')} className="px-2 py-0.5 bg-gray-100 border border-gray-200 rounded text-lg">↓</button>
+                        <button onClick={() => appendArrow('↑')} className="px-2 py-0.5 bg-gray-100 border border-gray-200 rounded text-lg">↑</button>
+                        <button onClick={() => appendArrow('x')} className="px-2 py-0.5 bg-gray-100 border border-gray-200 rounded text-lg">x</button>
                       </div>
                       <input
                         type="text"
                         value={editingPattern.pattern_string}
                         onChange={(e) => setEditingPattern({ ...editingPattern, pattern_string: e.target.value })}
-                        className="w-full p-1 border border-gray-300 rounded text-sm font-mono"
+                        className="w-full admin-input admin-input-sm"
                       />
                       <div className="flex space-x-2">
-                        <button onClick={updatePattern} className="text-green-600 hover:text-green-800 text-sm flex items-center">
+                        <button onClick={updatePattern} className="admin-btn admin-btn-primary admin-btn-sm">
                           <CheckIcon className="h-4 w-4 mr-1" /> Save
                         </button>
-                        <button onClick={() => setEditingPattern(null)} className="text-gray-500 hover:text-gray-700 text-sm">Cancel</button>
+                        <button onClick={() => setEditingPattern(null)} className="admin-btn admin-btn-secondary admin-btn-sm">Cancel</button>
                       </div>
                     </div>
                   ) : (
@@ -521,10 +521,10 @@ export default function PracticeManagement() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2 ml-3">
-                        <button onClick={() => setEditingPattern({ ...pattern })} className="text-blue-600 hover:text-blue-800 p-1">
+                        <button onClick={() => setEditingPattern({ ...pattern })} className="admin-icon-btn">
                           <PencilIcon className="h-4 w-4" />
                         </button>
-                        <button onClick={() => deletePattern(pattern.id)} className="text-red-600 hover:text-red-800 p-1">
+                        <button onClick={() => deletePattern(pattern.id)} className="admin-icon-btn admin-icon-btn-danger">
                           <TrashIcon className="h-4 w-4" />
                         </button>
                       </div>
@@ -543,7 +543,7 @@ export default function PracticeManagement() {
           {!showCreateKey && (
             <button
               onClick={() => setShowCreateKey(true)}
-              className="mb-4 flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="admin-btn admin-btn-primary mb-4"
             >
               <PlusIcon className="h-4 w-4 mr-2" />
               Add Musical Key
@@ -551,30 +551,30 @@ export default function PracticeManagement() {
           )}
 
           {showCreateKey && (
-            <div className="mb-6 p-4 rounded-lg border-2 border-green-200 bg-green-50">
+            <div className="admin-card mb-6">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">New Musical Key</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Key Name *</label>
-                  <input type="text" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} placeholder="e.g. C" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" />
+                  <input type="text" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} placeholder="e.g. C" className="w-full admin-input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Chord I *</label>
-                  <input type="text" value={newChordI} onChange={(e) => setNewChordI(e.target.value)} placeholder="C" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" />
+                  <input type="text" value={newChordI} onChange={(e) => setNewChordI(e.target.value)} placeholder="C" className="w-full admin-input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Chord IV *</label>
-                  <input type="text" value={newChordIV} onChange={(e) => setNewChordIV(e.target.value)} placeholder="F" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" />
+                  <input type="text" value={newChordIV} onChange={(e) => setNewChordIV(e.target.value)} placeholder="F" className="w-full admin-input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Chord V *</label>
-                  <input type="text" value={newChordV} onChange={(e) => setNewChordV(e.target.value)} placeholder="G" className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500" />
+                  <input type="text" value={newChordV} onChange={(e) => setNewChordV(e.target.value)} placeholder="G" className="w-full admin-input" />
                 </div>
                 <div className="col-span-2 flex space-x-2">
-                  <button onClick={createKey} disabled={!newKeyName || !newChordI || !newChordIV || !newChordV} className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center">
+                  <button onClick={createKey} disabled={!newKeyName || !newChordI || !newChordIV || !newChordV} className="admin-btn admin-btn-primary">
                     <CheckIcon className="h-4 w-4 mr-1" /> Save
                   </button>
-                  <button onClick={() => { setShowCreateKey(false); setNewKeyName(''); setNewChordI(''); setNewChordIV(''); setNewChordV(''); }} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                  <button onClick={() => { setShowCreateKey(false); setNewKeyName(''); setNewChordI(''); setNewChordIV(''); setNewChordV(''); }} className="admin-btn admin-btn-secondary">
                     Cancel
                   </button>
                 </div>
@@ -584,23 +584,23 @@ export default function PracticeManagement() {
 
           <div className="space-y-2">
             {keys.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No musical keys yet.</p>
+              <p className="admin-empty">No musical keys yet.</p>
             ) : (
               keys.map((key) => (
-                <div key={key.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:shadow-sm transition-shadow">
+                <div key={key.id} className="admin-row">
                   {editingKey?.id === key.id ? (
                     <div className="flex-1 mr-3">
                       <div className="grid grid-cols-4 gap-2 mb-2">
-                        <input type="text" value={editingKey.key_name} onChange={(e) => setEditingKey({ ...editingKey, key_name: e.target.value })} className="p-1 border border-gray-300 rounded text-sm" placeholder="Key" />
-                        <input type="text" value={editingKey.chord_i} onChange={(e) => setEditingKey({ ...editingKey, chord_i: e.target.value })} className="p-1 border border-gray-300 rounded text-sm" placeholder="I" />
-                        <input type="text" value={editingKey.chord_iv} onChange={(e) => setEditingKey({ ...editingKey, chord_iv: e.target.value })} className="p-1 border border-gray-300 rounded text-sm" placeholder="IV" />
-                        <input type="text" value={editingKey.chord_v} onChange={(e) => setEditingKey({ ...editingKey, chord_v: e.target.value })} className="p-1 border border-gray-300 rounded text-sm" placeholder="V" />
+                        <input type="text" value={editingKey.key_name} onChange={(e) => setEditingKey({ ...editingKey, key_name: e.target.value })} className="admin-input admin-input-sm" placeholder="Key" />
+                        <input type="text" value={editingKey.chord_i} onChange={(e) => setEditingKey({ ...editingKey, chord_i: e.target.value })} className="admin-input admin-input-sm" placeholder="I" />
+                        <input type="text" value={editingKey.chord_iv} onChange={(e) => setEditingKey({ ...editingKey, chord_iv: e.target.value })} className="admin-input admin-input-sm" placeholder="IV" />
+                        <input type="text" value={editingKey.chord_v} onChange={(e) => setEditingKey({ ...editingKey, chord_v: e.target.value })} className="admin-input admin-input-sm" placeholder="V" />
                       </div>
                       <div className="flex space-x-2">
-                        <button onClick={updateKey} className="text-green-600 hover:text-green-800 text-sm flex items-center">
+                        <button onClick={updateKey} className="admin-btn admin-btn-primary admin-btn-sm">
                           <CheckIcon className="h-4 w-4 mr-1" /> Save
                         </button>
-                        <button onClick={() => setEditingKey(null)} className="text-gray-500 hover:text-gray-700 text-sm">Cancel</button>
+                        <button onClick={() => setEditingKey(null)} className="admin-btn admin-btn-secondary admin-btn-sm">Cancel</button>
                       </div>
                     </div>
                   ) : (
@@ -618,10 +618,10 @@ export default function PracticeManagement() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2 ml-3">
-                        <button onClick={() => setEditingKey({ ...key })} className="text-blue-600 hover:text-blue-800 p-1">
+                        <button onClick={() => setEditingKey({ ...key })} className="admin-icon-btn">
                           <PencilIcon className="h-4 w-4" />
                         </button>
-                        <button onClick={() => deleteKey(key.id)} className="text-red-600 hover:text-red-800 p-1">
+                        <button onClick={() => deleteKey(key.id)} className="admin-icon-btn admin-icon-btn-danger">
                           <TrashIcon className="h-4 w-4" />
                         </button>
                       </div>

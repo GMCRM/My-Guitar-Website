@@ -124,8 +124,8 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#87AA6A'}}>
-        <div className="text-white text-lg">Loading...</div>
+      <div className="admin-shell flex items-center justify-center">
+        <div className="text-sm text-gray-600">Loading...</div>
       </div>
     );
   }
@@ -137,17 +137,17 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
 
   if (!hasAccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#87AA6A'}}>
-        <div className="w-full max-w-md">
-          <div className="rounded-3xl p-8 shadow-forest" style={{backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)'}}>
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-white mb-2">Teacher Access</h1>
-              <p className="text-white text-opacity-70">Sign in to access the admin panel</p>
+      <div className="admin-shell flex items-center justify-center px-4">
+        <div className="w-full max-w-sm">
+          <div className="admin-card">
+            <div className="mb-6">
+              <h1 className="text-xl font-semibold text-gray-900 mb-1">Teacher Access</h1>
+              <p className="text-sm text-gray-600">Sign in to access the admin panel</p>
             </div>
 
-            <form onSubmit={handleSignIn} className="space-y-6">
+            <form onSubmit={handleSignIn} className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                   Email
                 </label>
                 <input
@@ -158,13 +158,13 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 text-gray-900 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent focus:bg-white focus:bg-opacity-90"
+                  className="admin-input w-full"
                   placeholder="Enter your email"
                 />
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-white mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                   Password
                 </label>
                 <input
@@ -175,22 +175,21 @@ const AdminAuth = ({ children }: AdminAuthProps) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 text-gray-900 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent focus:bg-white focus:bg-opacity-90"
+                  className="admin-input w-full"
                   placeholder="Enter your password"
                 />
               </div>
 
               {error && (
-                <div className="p-3 rounded-lg bg-red-500 bg-opacity-20 border border-red-500 border-opacity-30">
-                  <p className="text-red-200 text-sm">{error}</p>
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                  <p className="text-red-700 text-sm">{error}</p>
                 </div>
               )}
 
               <button
                 type="submit"
                 disabled={isSigningIn}
-                className="w-full py-3 px-4 text-white font-semibold rounded-lg transition-all hover-lift disabled:opacity-50"
-                style={{backgroundColor: '#BC6A1B'}}
+                className="admin-btn admin-btn-primary w-full"
               >
                 {isSigningIn ? 'Signing In...' : 'Sign In'}
               </button>

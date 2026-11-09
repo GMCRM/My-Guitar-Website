@@ -11,6 +11,7 @@ import {
   CalendarDaysIcon,
   TagIcon,
   MusicalNoteIcon,
+  PhotoIcon,
   ChatBubbleLeftRightIcon,
   DocumentTextIcon,
   PlayIcon,
@@ -2091,147 +2092,64 @@ const AdminDashboardContent = () => {
       {/* Main Navigation */}
       <Navigation />
       
-      <div className="min-h-screen" style={{backgroundColor: '#87AA6A'}}>
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">{isSuperAdmin ? 'Admin Dashboard' : 'Teacher Dashboard'}</h1>
-            <p className="text-white text-opacity-80">
-              {isSuperAdmin ? 'Manage your blog, music, and messages' : 'Manage your assigned students and permitted tools'}
-            </p>
-          </div>
-
-          {/* Stats Cards */}
-          {(canViewBlogStats || canViewMessageStats) && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
-              {canViewBlogStats && (
-                <>
-                  <div className="rounded-2xl p-4 md:p-6" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
-                    <div className="text-white text-opacity-60 text-xs md:text-sm">Total Posts</div>
-                    <div className="text-white text-xl md:text-2xl font-bold">{stats.totalPosts}</div>
-                  </div>
-                  <div className="rounded-2xl p-4 md:p-6" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
-                    <div className="text-white text-opacity-60 text-xs md:text-sm">Published</div>
-                    <div className="text-white text-xl md:text-2xl font-bold">{stats.publishedPosts}</div>
-                  </div>
-                  <div className="rounded-2xl p-4 md:p-6" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
-                    <div className="text-white text-opacity-60 text-xs md:text-sm">Drafts</div>
-                    <div className="text-white text-xl md:text-2xl font-bold">{stats.draftPosts}</div>
-                  </div>
-                  <div className="rounded-2xl p-4 md:p-6" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
-                    <div className="text-white text-opacity-60 text-xs md:text-sm">Subscribers</div>
-                    <div className="text-white text-xl md:text-2xl font-bold">{stats.subscribers}</div>
-                  </div>
-                </>
-              )}
-
-              {canViewMessageStats && (
-                <div className="rounded-2xl p-4 md:p-6 col-span-2 md:col-span-1" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
-                  <div className="text-white text-opacity-60 text-xs md:text-sm">Unread Messages</div>
-                  <div className="text-white text-xl md:text-2xl font-bold text-orange-300">{stats.unreadMessages}</div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Tab Navigation */}
-          <div className="rounded-2xl p-1 mb-8" style={{backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)'}}>
-            {/* Desktop Tab Navigation */}
-            <nav className="hidden md:flex space-x-1">
+      <div className="admin-shell">
+        <div className="admin-layout">
+          <aside className="admin-sidebar">
+            <nav className="admin-nav" aria-label="Admin sections">
               {visibleTabs.map((tab) => {
                 const Icon = tab.icon;
                 const unreadCount = tab.id === 'messages' ? messages.filter(m => !m.read).length : 0;
                 return (
                   <button
                     key={tab.id}
+                    type="button"
                     onClick={() => handleTabChange(tab.id)}
-                    className={`flex items-center px-6 py-3 rounded-xl text-sm font-medium transition-all relative ${
-                      activeTab === tab.id
-                        ? 'text-white shadow-lg'
-                        : 'text-gray-700 hover:text-white hover:shadow-md'
-                    }`}
-                    style={{
-                      backgroundColor: activeTab === tab.id 
-                        ? '#66732C' 
-                        : 'rgba(255,255,255,0.8)',
-                      backdropFilter: 'blur(8px)'
-                    }}
+                    className="admin-nav-item"
+                    aria-current={activeTab === tab.id ? 'page' : undefined}
                   >
-                    <Icon className="w-4 h-4 mr-2" />
-                    {tab.fullName}
+                    <Icon className="w-4 h-4" aria-hidden="true" />
+                    <span className="lg:hidden">{tab.name}</span>
+                    <span className="hidden lg:inline">{tab.fullName}</span>
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                        {unreadCount}
-                      </span>
+                      <span className="admin-nav-count" aria-label={`${unreadCount} unread`}>{unreadCount}</span>
                     )}
                   </button>
                 );
               })}
             </nav>
+          </aside>
 
-            {/* Mobile Tab Navigation */}
-            <div className="md:hidden">
-              {/* Mobile Tab Buttons - Horizontal Scroll */}
-              <div className="flex space-x-1 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                {visibleTabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const unreadCount = tab.id === 'messages' ? messages.filter(m => !m.read).length : 0;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => handleTabChange(tab.id)}
-                      className={`flex flex-col items-center px-4 py-3 rounded-xl text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 relative ${
-                        activeTab === tab.id
-                          ? 'text-white shadow-lg'
-                          : 'text-gray-700 hover:text-white hover:shadow-md'
-                      }`}
-                      style={{
-                        backgroundColor: activeTab === tab.id 
-                          ? '#66732C' 
-                          : 'rgba(255,255,255,0.8)',
-                        backdropFilter: 'blur(8px)',
-                        minWidth: '80px'
-                      }}
-                    >
-                      <Icon className="w-5 h-5 mb-1" />
-                      {tab.name}
-                      {/* Unread badges for mobile */}
-                      {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                          {unreadCount}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-              
-              {/* Hide scrollbar on mobile webkit browsers */}
-              <style jsx>{`
-                .overflow-x-auto::-webkit-scrollbar {
-                  display: none;
-                }
-              `}</style>
-            </div>
-          </div>
+          <main className="admin-main">
+            <header className="admin-page-header">
+              <h1>{isSuperAdmin ? 'Admin Dashboard' : 'Teacher Dashboard'}</h1>
+              <p>
+                {isSuperAdmin ? 'Manage your blog, music, students, and messages.' : 'Manage your assigned students and permitted tools.'}
+              </p>
+            </header>
 
-          {/* Tab Content */}
-          <div 
-            className="rounded-2xl p-6" 
-            style={{
-              backgroundColor: 'rgba(102, 115, 44, 0.1)', 
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255,255,255,0.1)'
-            }}
-          >
+            {(canViewBlogStats || canViewMessageStats) && (
+              <dl className="admin-stats">
+                {canViewBlogStats && (
+                  <>
+                    <div className="admin-stat"><dt>Total posts</dt><dd>{stats.totalPosts}</dd></div>
+                    <div className="admin-stat"><dt>Published</dt><dd>{stats.publishedPosts}</dd></div>
+                    <div className="admin-stat"><dt>Drafts</dt><dd>{stats.draftPosts}</dd></div>
+                    <div className="admin-stat"><dt>Subscribers</dt><dd>{stats.subscribers}</dd></div>
+                  </>
+                )}
+                {canViewMessageStats && (
+                  <div className="admin-stat"><dt>Unread messages</dt><dd>{stats.unreadMessages}</dd></div>
+                )}
+              </dl>
+            )}
+
             {activeTab === 'blog' && (
               <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-800">Blog Posts</h2>
+                <div className="admin-section-header">
+                  <h2 className="admin-section-title">Blog Posts</h2>
                   <Link
                     href="/admin/posts/new"
-                    className="flex items-center px-4 py-2 rounded-lg font-medium text-white transition-all hover-lift"
-                    style={{backgroundColor: '#BC6A1B'}}
+                    className="admin-btn admin-btn-primary"
                   >
                     <PlusIcon className="w-4 h-4 mr-2" />
                     New Post
@@ -2239,9 +2157,9 @@ const AdminDashboardContent = () => {
                 </div>
 
                 {loading ? (
-                  <div className="text-gray-600 text-center py-8">Loading posts...</div>
+                  <div className="admin-empty">Loading posts...</div>
                 ) : posts.length === 0 ? (
-                  <div className="text-gray-600 text-center py-8">
+                  <div className="admin-empty">
                     No posts yet. Create your first post!
                   </div>
                 ) : (
@@ -2249,16 +2167,15 @@ const AdminDashboardContent = () => {
                     {posts.map((post) => (
                       <div
                         key={post.id}
-                        className="flex items-center justify-between p-4 rounded-lg border border-gray-200"
-                        style={{backgroundColor: 'rgba(255,255,255,0.9)'}}
+                        className="admin-row"
                       >
                         <div className="flex-1">
                           <h3 className="text-gray-800 font-medium">{post.title}</h3>
                           <div className="flex items-center space-x-4 mt-1">
-                            <span className={`px-2 py-1 rounded text-xs ${
+                            <span className={`admin-badge ${
                               post.published 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-yellow-100 text-yellow-700'
+                                ? 'admin-badge-success' 
+                                : 'admin-badge-attention'
                             }`}>
                               {post.published ? 'Published' : 'Draft'}
                             </span>
@@ -2266,25 +2183,29 @@ const AdminDashboardContent = () => {
                               {formatDate(post.created_at)}
                             </span>
                             {post.featured && (
-                              <span className="px-2 py-1 rounded text-xs bg-orange-100 text-orange-700">
+                              <span className="admin-badge admin-badge-attention">
                                 Featured
                               </span>
                             )}
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <button className="p-2 text-gray-600 hover:text-gray-800 transition-colors">
+                          <button className="admin-icon-btn">
                             <EyeIcon className="w-4 h-4" />
                           </button>
                           <button 
                             onClick={() => startEditPost(post)}
-                            className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+                            aria-label={`Edit ${post.title}`}
+                            title="Edit"
+                            className="admin-icon-btn"
                           >
                             <PencilIcon className="w-4 h-4" />
                           </button>
                           <button 
                             onClick={() => deletePost(post.id)}
-                            className="p-2 text-red-300 hover:text-red-200 transition-colors"
+                            aria-label={`Delete ${post.title}`}
+                            title="Delete"
+                            className="admin-icon-btn admin-icon-btn-danger"
                           >
                             <TrashIcon className="w-4 h-4" />
                           </button>
@@ -2299,13 +2220,13 @@ const AdminDashboardContent = () => {
             {/* Edit Post Modal */}
             {editingPost && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="admin-modal bg-white max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                   <div className="p-6">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-bold text-gray-800">Edit Blog Post</h3>
                       <button
                         onClick={cancelEdit}
-                        className="p-2 text-gray-400 hover:text-gray-600"
+                        className="admin-icon-btn"
                       >
                         <XMarkIcon className="w-5 h-5" />
                       </button>
@@ -2321,7 +2242,7 @@ const AdminDashboardContent = () => {
                           type="text"
                           value={editForm.title}
                           onChange={(e) => setEditForm({...editForm, title: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          className="w-full admin-input"
                         />
                       </div>
 
@@ -2334,7 +2255,7 @@ const AdminDashboardContent = () => {
                           value={editForm.excerpt}
                           onChange={(e) => setEditForm({...editForm, excerpt: e.target.value})}
                           rows={2}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          className="w-full admin-input"
                         />
                       </div>
 
@@ -2347,7 +2268,7 @@ const AdminDashboardContent = () => {
                           value={editForm.content}
                           onChange={(e) => setEditForm({...editForm, content: e.target.value})}
                           rows={10}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          className="w-full admin-input"
                         />
                       </div>
 
@@ -2364,7 +2285,7 @@ const AdminDashboardContent = () => {
                             tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag)
                           })}
                           placeholder="music, teaching, guitar"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          className="w-full admin-input"
                         />
                       </div>
 
@@ -2407,7 +2328,7 @@ const AdminDashboardContent = () => {
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              <div className="text-gray-400 text-4xl">📸</div>
+                              <PhotoIcon className="w-9 h-9 mx-auto text-gray-400" aria-hidden="true" />
                               <div>
                                 <p className="text-gray-600">Click to upload or drag and drop</p>
                                 <p className="text-sm text-gray-400">PNG, JPG, GIF up to 10MB</p>
@@ -2427,15 +2348,14 @@ const AdminDashboardContent = () => {
                     <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
                       <button
                         onClick={cancelEdit}
-                        className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                        className="admin-btn admin-btn-secondary"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={saveEditPost}
                         disabled={uploadingEditImage}
-                        className="px-6 py-2 rounded-lg font-medium text-white transition-all hover-lift disabled:opacity-50"
-                        style={{backgroundColor: '#BC6A1B'}}
+                        className="admin-btn admin-btn-primary"
                       >
                         {uploadingEditImage ? 'Uploading...' : 'Save Changes'}
                       </button>
@@ -2448,13 +2368,13 @@ const AdminDashboardContent = () => {
             {/* Edit Student Modal */}
             {editingStudent && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-lg max-w-md w-full">
+                <div className="admin-modal bg-white max-w-md w-full">
                   <div className="p-6">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-bold text-gray-800">Edit Student</h3>
                       <button
                         onClick={cancelEditStudent}
-                        className="p-2 text-gray-400 hover:text-gray-600"
+                        className="admin-icon-btn"
                       >
                         <XMarkIcon className="w-5 h-5" />
                       </button>
@@ -2470,7 +2390,7 @@ const AdminDashboardContent = () => {
                           type="email"
                           value={editStudentForm.email}
                           onChange={(e) => setEditStudentForm({...editStudentForm, email: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full admin-input"
                         />
                       </div>
 
@@ -2483,7 +2403,7 @@ const AdminDashboardContent = () => {
                           type="text"
                           value={editStudentForm.firstName}
                           onChange={(e) => setEditStudentForm({...editStudentForm, firstName: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full admin-input"
                         />
                       </div>
 
@@ -2496,7 +2416,7 @@ const AdminDashboardContent = () => {
                           type="text"
                           value={editStudentForm.lastName}
                           onChange={(e) => setEditStudentForm({...editStudentForm, lastName: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full admin-input"
                         />
                       </div>
 
@@ -2511,7 +2431,7 @@ const AdminDashboardContent = () => {
                             value={editStudentForm.password}
                             onChange={(e) => setEditStudentForm({...editStudentForm, password: e.target.value})}
                             placeholder="Leave blank to keep current password"
-                            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full pr-10 admin-input"
                           />
                           <button
                             type="button"
@@ -2535,14 +2455,13 @@ const AdminDashboardContent = () => {
                     <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
                       <button
                         onClick={cancelEditStudent}
-                        className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                        className="admin-btn admin-btn-secondary"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={updateStudent}
-                        className="px-6 py-2 rounded-lg font-medium text-white transition-all hover-lift"
-                        style={{backgroundColor: '#BC6A1B'}}
+                        className="admin-btn admin-btn-primary"
                       >
                         Save Changes
                       </button>
@@ -2554,14 +2473,14 @@ const AdminDashboardContent = () => {
 
             {activeTab === 'music' && (
               <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-800">Music Videos</h2>
+                <div className="admin-section-header">
+                  <h2 className="admin-section-title">Music Videos</h2>
                 </div>
 
                 {/* Music Audio Upload Form */}
-                <div className="mb-6 p-4 rounded-lg" style={{backgroundColor: 'rgba(255,255,255,0.9)'}}>
+                <div className="admin-card mb-6">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-gray-800 font-medium">Upload Audio Track</h3>
+                    <h3 className="admin-card-title" style={{marginBottom: 0}}>Upload Audio Track</h3>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <input
@@ -2569,11 +2488,7 @@ const AdminDashboardContent = () => {
                       value={audioTitle}
                       onChange={(e) => setAudioTitle(e.target.value)}
                       placeholder="Track title (auto-fills from file name)"
-                      className="md:col-span-1 px-4 py-2 rounded-lg border text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.95)',
-                        borderColor: '#66732C'
-                      }}
+                      className="md:col-span-1 admin-input"
                     />
                     <input
                       type="file"
@@ -2585,17 +2500,12 @@ const AdminDashboardContent = () => {
                           setAudioTitle(getTitleFromFileName(selectedFile.name));
                         }
                       }}
-                      className="md:col-span-1 px-4 py-2 rounded-lg border text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.95)',
-                        borderColor: '#66732C'
-                      }}
+                      className="md:col-span-1 admin-input"
                     />
                     <button
                       onClick={addAudioTrack}
                       disabled={addingMusicAudio || !audioFile}
-                      className="px-4 py-2 rounded-lg font-medium text-white transition-all hover-lift disabled:opacity-50"
-                      style={{backgroundColor: '#BC6A1B'}}
+                      className="admin-btn admin-btn-primary"
                     >
                       {addingMusicAudio ? 'Uploading...' : 'Upload Audio'}
                     </button>
@@ -2605,15 +2515,14 @@ const AdminDashboardContent = () => {
                 {/* Music Audio List */}
                 <div className="space-y-4 mb-10">
                   {audioTrackList.length === 0 ? (
-                    <div className="text-gray-600 text-center py-6 rounded-lg" style={{backgroundColor: 'rgba(255,255,255,0.9)'}}>
+                    <div className="admin-card admin-empty">
                       No audio tracks uploaded yet.
                     </div>
                   ) : (
                     audioTrackList.map((track, index) => (
                       <div
                         key={track.dbId}
-                        className="p-4 rounded-lg border border-gray-200"
-                        style={{backgroundColor: 'rgba(255,255,255,0.9)'}}
+                        className="admin-card"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-start space-x-4 min-w-0 flex-1">
@@ -2623,11 +2532,7 @@ const AdminDashboardContent = () => {
                                 <button
                                   onClick={() => moveAudioTrack(track.dbId, 'up')}
                                   disabled={index === 0}
-                                  className={`p-1 rounded ${
-                                    index === 0
-                                      ? 'text-gray-300 cursor-not-allowed'
-                                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-                                  } transition-colors`}
+                                  className="admin-icon-btn"
                                   title="Move up"
                                 >
                                   <ChevronUpIcon className="w-4 h-4" />
@@ -2635,11 +2540,7 @@ const AdminDashboardContent = () => {
                                 <button
                                   onClick={() => moveAudioTrack(track.dbId, 'down')}
                                   disabled={index === audioTrackList.length - 1}
-                                  className={`p-1 rounded ${
-                                    index === audioTrackList.length - 1
-                                      ? 'text-gray-300 cursor-not-allowed'
-                                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-                                  } transition-colors`}
+                                  className="admin-icon-btn"
                                   title="Move down"
                                 >
                                   <ChevronDownIcon className="w-4 h-4" />
@@ -2653,13 +2554,13 @@ const AdminDashboardContent = () => {
                                     type="text"
                                     value={editingAudioTitle}
                                     onChange={(e) => setEditingAudioTitle(e.target.value)}
-                                    className="w-full px-3 py-1 rounded border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                    className="w-full admin-input admin-input-sm"
                                     maxLength={200}
                                   />
                                   <button
                                     onClick={() => saveAudioTitle(track.dbId)}
                                     disabled={savingAudioTitle}
-                                    className="p-1 text-green-700 hover:text-green-900 transition-colors disabled:opacity-50"
+                                    className="admin-icon-btn"
                                     title="Save title"
                                   >
                                     <CheckIcon className="w-4 h-4" />
@@ -2667,7 +2568,7 @@ const AdminDashboardContent = () => {
                                   <button
                                     onClick={cancelEditingAudioTitle}
                                     disabled={savingAudioTitle}
-                                    className="p-1 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50"
+                                    className="admin-icon-btn"
                                     title="Cancel"
                                   >
                                     <XMarkIcon className="w-4 h-4" />
@@ -2678,7 +2579,7 @@ const AdminDashboardContent = () => {
                                   <h3 className="text-gray-800 font-medium truncate">{track.title}</h3>
                                   <button
                                     onClick={() => startEditingAudioTitle(track)}
-                                    className="p-1 text-gray-600 hover:text-gray-800 transition-colors"
+                                    className="admin-icon-btn"
                                     title="Edit title"
                                   >
                                     <PencilIcon className="w-4 h-4" />
@@ -2692,7 +2593,7 @@ const AdminDashboardContent = () => {
                           </div>
                           <button
                             onClick={() => removeAudioTrack(track.dbId)}
-                            className="p-2 text-red-600 hover:text-red-800 transition-colors"
+                            className="admin-icon-btn admin-icon-btn-danger"
                             title="Remove audio track"
                           >
                             <XMarkIcon className="w-4 h-4" />
@@ -2709,27 +2610,22 @@ const AdminDashboardContent = () => {
                 </div>
 
                 {/* Add Video Form */}
-                <div className="mb-6 p-4 rounded-lg" style={{backgroundColor: 'rgba(255,255,255,0.9)'}}>
+                <div className="admin-card mb-6">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-gray-800 font-medium">Add New YouTube Video</h3>
+                    <h3 className="admin-card-title" style={{marginBottom: 0}}>Add New YouTube Video</h3>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <input
                       type="text"
                       value={youtubeUrl}
                       onChange={(e) => setYoutubeUrl(e.target.value)}
                       placeholder="Paste YouTube URL here..."
-                      className="flex-1 px-4 py-2 rounded-lg border text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                      style={{
-                        backgroundColor: 'rgba(255,255,255,0.95)',
-                        borderColor: '#66732C'
-                      }}
+                      className="flex-1 admin-input"
                     />
                     <button
                       onClick={addYouTubeVideo}
                       disabled={addingMusicVideo}
-                      className="px-4 py-2 rounded-lg font-medium text-white transition-all hover-lift disabled:opacity-50"
-                      style={{backgroundColor: '#BC6A1B'}}
+                      className="admin-btn admin-btn-primary"
                     >
                       {addingMusicVideo ? 'Adding...' : 'Add Video'}
                     </button>
@@ -2739,15 +2635,14 @@ const AdminDashboardContent = () => {
                 {/* Video List */}
                 <div className="space-y-4">
                   {videoList.length === 0 ? (
-                    <div className="text-gray-600 text-center py-8">
+                    <div className="admin-empty">
                       No videos added yet. Add a YouTube URL above to get started!
                     </div>
                   ) : (
                     videoList.map((video, index) => (
                       <div
                         key={video.dbId}
-                        className="flex items-center justify-between p-4 rounded-lg border border-gray-200"
-                        style={{backgroundColor: 'rgba(255,255,255,0.9)'}}
+                        className="admin-row"
                       >
                         <div className="flex items-center space-x-4">
                           {/* Order number and reorder buttons */}
@@ -2757,11 +2652,7 @@ const AdminDashboardContent = () => {
                               <button
                                 onClick={() => moveVideo(video.dbId, 'up')}
                                 disabled={index === 0}
-                                className={`p-1 rounded ${
-                                  index === 0 
-                                    ? 'text-gray-300 cursor-not-allowed' 
-                                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-                                } transition-colors`}
+                                className="admin-icon-btn"
                                 title="Move up"
                               >
                                 <ChevronUpIcon className="w-4 h-4" />
@@ -2769,11 +2660,7 @@ const AdminDashboardContent = () => {
                               <button
                                 onClick={() => moveVideo(video.dbId, 'down')}
                                 disabled={index === videoList.length - 1}
-                                className={`p-1 rounded ${
-                                  index === videoList.length - 1 
-                                    ? 'text-gray-300 cursor-not-allowed' 
-                                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-                                } transition-colors`}
+                                className="admin-icon-btn"
                                 title="Move down"
                               >
                                 <ChevronDownIcon className="w-4 h-4" />
@@ -2799,14 +2686,14 @@ const AdminDashboardContent = () => {
                             href={`https://youtube.com/watch?v=${video.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-2 text-blue-600 hover:text-blue-800 transition-colors"
+                            className="admin-icon-btn"
                             title="Watch on YouTube"
                           >
                             <PlayIcon className="w-4 h-4" />
                           </a>
                           <button
                             onClick={() => removeVideo(video.dbId)}
-                            className="p-2 text-red-600 hover:text-red-800 transition-colors"
+                            className="admin-icon-btn admin-icon-btn-danger"
                             title="Remove video"
                           >
                             <XMarkIcon className="w-4 h-4" />
@@ -2821,8 +2708,8 @@ const AdminDashboardContent = () => {
 
             {activeTab === 'messages' && (
               <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-800">Messages & Comments</h2>
+                <div className="admin-section-header">
+                  <h2 className="admin-section-title">Messages & Comments</h2>
                   <div className="text-sm text-gray-600">
                     Total: {messages.length} | 
                     Unread: {messages.filter(m => !m.read).length} | 
@@ -2858,7 +2745,7 @@ const AdminDashboardContent = () => {
 
                 <div className="space-y-4">
                   {filteredMessages.length === 0 ? (
-                    <div className="text-gray-600 text-center py-8">
+                    <div className="admin-empty">
                       {messageFilter === 'all' && 'No messages yet.'}
                       {messageFilter === 'unread' && 'No unread messages.'}
                       {messageFilter === 'read' && 'No read messages.'}
@@ -2867,24 +2754,15 @@ const AdminDashboardContent = () => {
                     filteredMessages.map((message) => (
                       <div
                         key={message.id}
-                        className={`p-4 rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                          message.read 
-                            ? 'border border-gray-200 hover:border-gray-300' 
-                            : 'border border-orange-400 border-2 hover:border-orange-500'
-                        }`}
-                        style={{
-                          backgroundColor: message.read 
-                            ? 'rgba(255,255,255,0.8)' 
-                            : 'rgba(255,255,255,0.95)'
-                        }}
+                        className={`admin-message ${message.read ? '' : 'admin-message-unread'}`}
                         onClick={() => openMessageModal(message)}
                       >
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1">
+                        <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
+                          <div className="flex-1 min-w-[200px]">
                             <div className="flex items-center space-x-2 mb-1">
                               <h3 className="text-gray-800 font-medium">{message.subject}</h3>
                               {!message.read && (
-                                <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">
+                                <span className="admin-badge admin-badge-attention">
                                   New
                                 </span>
                               )}
@@ -2897,10 +2775,10 @@ const AdminDashboardContent = () => {
                             </p>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <span className={`px-2 py-1 rounded text-xs ${
+                            <span className={`admin-badge ${
                               message.type === 'contact' 
-                                ? 'bg-blue-100 text-blue-700' 
-                                : 'bg-green-100 text-green-700'
+                                ? 'admin-badge-neutral' 
+                                : 'admin-badge-success'
                             }`}>
                               {message.type === 'contact' ? 'Contact' : 'Comment'}
                             </span>
@@ -2910,7 +2788,7 @@ const AdminDashboardContent = () => {
                                   e.stopPropagation();
                                   markMessageAsRead(message.id);
                                 }}
-                                className="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 text-xs rounded"
+                                className="admin-btn admin-btn-secondary admin-btn-sm"
                               >
                                 Mark as read
                               </button>
@@ -2920,7 +2798,7 @@ const AdminDashboardContent = () => {
                                 e.stopPropagation();
                                 deleteMessage(message.id);
                               }}
-                              className="p-2 text-red-600 hover:text-red-800 transition-colors"
+                              className="admin-icon-btn admin-icon-btn-danger"
                               title="Delete message"
                             >
                               <TrashIcon className="w-4 h-4" />
@@ -2939,22 +2817,22 @@ const AdminDashboardContent = () => {
                 {/* Message Detail Modal */}
                 {selectedMessage && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                    <div className="admin-modal bg-white max-w-4xl w-full max-h-[90vh] overflow-hidden">
                       <div className="flex justify-between items-center p-6 border-b border-gray-200">
                         <div className="flex-1">
-                          <h2 className="text-xl font-bold text-gray-800">{selectedMessage.subject}</h2>
+                          <h2 className="admin-section-title">{selectedMessage.subject}</h2>
                           <div className="flex items-center space-x-4 mt-2">
-                            <span className={`px-2 py-1 rounded text-xs ${
+                            <span className={`admin-badge ${
                               selectedMessage.type === 'contact' 
-                                ? 'bg-blue-100 text-blue-700' 
-                                : 'bg-green-100 text-green-700'
+                                ? 'admin-badge-neutral' 
+                                : 'admin-badge-success'
                             }`}>
                               {selectedMessage.type === 'contact' ? 'Contact Form' : 'Comment'}
                             </span>
-                            <span className={`px-2 py-1 rounded text-xs ${
+                            <span className={`admin-badge ${
                               selectedMessage.read 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-orange-100 text-orange-700'
+                                ? 'admin-badge-success' 
+                                : 'admin-badge-attention'
                             }`}>
                               {selectedMessage.read ? 'Read' : 'Unread'}
                             </span>
@@ -2962,7 +2840,7 @@ const AdminDashboardContent = () => {
                         </div>
                         <button
                           onClick={closeMessageModal}
-                          className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                          className="admin-icon-btn"
                         >
                           <XMarkIcon className="w-6 h-6" />
                         </button>
@@ -3014,7 +2892,7 @@ const AdminDashboardContent = () => {
                                 markMessageAsRead(selectedMessage.id);
                                 setSelectedMessage({...selectedMessage, read: true});
                               }}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                              className="admin-btn admin-btn-primary"
                             >
                               Mark as Read
                             </button>
@@ -3024,14 +2902,14 @@ const AdminDashboardContent = () => {
                               deleteMessage(selectedMessage.id);
                               closeMessageModal();
                             }}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            className="admin-btn admin-btn-danger"
                           >
                             Delete Message
                           </button>
                         </div>
                         <button
                           onClick={closeMessageModal}
-                          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                          className="admin-btn admin-btn-secondary"
                         >
                           Close
                         </button>
@@ -3044,15 +2922,15 @@ const AdminDashboardContent = () => {
 
             {activeTab === 'students' && (
               <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-800">Student Management</h2>
+                <div className="admin-section-header">
+                  <h2 className="admin-section-title">Student Management</h2>
                 </div>
 
                 {/* Create New Student */}
                 {canManageStudents && (
-                <div className="mb-6 p-4 rounded-lg" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    <UserGroupIcon className="h-5 w-5 mr-2" />
+                <div className="admin-card mb-6">
+                  <h3 className="admin-card-title">
+                    <UserGroupIcon className="h-5 w-5" />
                     Create New Student
                   </h3>
                   
@@ -3066,7 +2944,7 @@ const AdminDashboardContent = () => {
                         value={newStudentForm.email}
                         onChange={(e) => setNewStudentForm({...newStudentForm, email: e.target.value})}
                         placeholder="student@example.com"
-                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full admin-input"
                         disabled={creatingStudent}
                       />
                     </div>
@@ -3080,7 +2958,7 @@ const AdminDashboardContent = () => {
                         value={newStudentForm.password}
                         onChange={(e) => setNewStudentForm({...newStudentForm, password: e.target.value})}
                         placeholder="Minimum 6 characters"
-                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full admin-input"
                         disabled={creatingStudent}
                       />
                     </div>
@@ -3094,7 +2972,7 @@ const AdminDashboardContent = () => {
                         value={newStudentForm.firstName}
                         onChange={(e) => setNewStudentForm({...newStudentForm, firstName: e.target.value})}
                         placeholder="John"
-                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full admin-input"
                         disabled={creatingStudent}
                       />
                     </div>
@@ -3108,7 +2986,7 @@ const AdminDashboardContent = () => {
                         value={newStudentForm.lastName}
                         onChange={(e) => setNewStudentForm({...newStudentForm, lastName: e.target.value})}
                         placeholder="Doe"
-                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full admin-input"
                         disabled={creatingStudent}
                       />
                     </div>
@@ -3118,11 +2996,7 @@ const AdminDashboardContent = () => {
                     <button
                       onClick={createStudent}
                       disabled={creatingStudent || !newStudentForm.email || !newStudentForm.password}
-                      className={`px-4 py-2 rounded-md text-white font-medium ${
-                        creatingStudent || !newStudentForm.email || !newStudentForm.password
-                          ? 'bg-gray-400 cursor-not-allowed'
-                          : 'bg-blue-600 hover:bg-blue-700'
-                      }`}
+                      className="admin-btn admin-btn-primary"
                     >
                       {creatingStudent ? 'Creating Student...' : 'Create Student Account'}
                     </button>
@@ -3131,13 +3005,13 @@ const AdminDashboardContent = () => {
                 )}
 
                 {/* Class Practice Goal */}
-                <div className="mb-6 p-4 rounded-lg" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <span className="mr-2">🎸</span>
+                <div className="admin-card mb-6">
+                  <h3 className="admin-card-title">
+                    <MusicalNoteIcon className="h-5 w-5" aria-hidden="true" />
                     Class Practice Goal
                   </h3>
                   <p className="text-sm text-gray-600 mb-3">
-                    Current goal: <span className="font-semibold text-purple-700">{classTotalMilestone.toLocaleString()}</span> total practices.
+                    Current goal: <span className="font-semibold text-gray-900">{classTotalMilestone.toLocaleString()}</span> total practices.
                     Set a new goal once the class reaches it.
                   </p>
                   <div className="flex items-center gap-2">
@@ -3147,16 +3021,12 @@ const AdminDashboardContent = () => {
                       value={milestoneInput}
                       onChange={(e) => setMilestoneInput(e.target.value)}
                       disabled={!canManageStudents || updatingMilestone}
-                      className="w-40 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                      className="w-40 admin-input"
                     />
                     <button
                       onClick={updateClassTotalMilestone}
                       disabled={!canManageStudents || updatingMilestone}
-                      className={`px-4 py-2 rounded-md text-white font-medium ${
-                        !canManageStudents || updatingMilestone
-                          ? 'bg-gray-400 cursor-not-allowed'
-                          : 'bg-purple-600 hover:bg-purple-700'
-                      }`}
+                      className="admin-btn admin-btn-secondary"
                     >
                       {updatingMilestone ? 'Updating...' : 'Update Goal'}
                     </button>
@@ -3164,14 +3034,14 @@ const AdminDashboardContent = () => {
                 </div>
 
                 {/* Students List */}
-                <div className="mb-6 p-4 rounded-lg" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    <UserGroupIcon className="h-5 w-5 mr-2" />
+                <div className="admin-card mb-6">
+                  <h3 className="admin-card-title">
+                    <UserGroupIcon className="h-5 w-5" />
                     {isSuperAdmin ? `All Students (${students.length})` : `Assigned Students (${students.length})`}
                   </h3>
 
                   {students.length === 0 ? (
-                    <p className="text-gray-500 text-center py-4">No accessible students found.</p>
+                    <p className="admin-empty">No accessible students found.</p>
                   ) : (
                     <div className="space-y-3">
                       {students.map((student) => {
@@ -3182,7 +3052,7 @@ const AdminDashboardContent = () => {
                         return (
                         <div
                           key={student.id}
-                          className="p-3 bg-gray-50 rounded-lg border"
+                          className="p-3 bg-gray-50 rounded-lg border border-gray-200"
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div className="flex-1">
@@ -3196,97 +3066,99 @@ const AdminDashboardContent = () => {
                                 <span className="mx-2">•</span>
                                 <span>Joined: {new Date(student.created_at).toLocaleDateString()}</span>
                               </div>
+                              <div className="admin-check-grid">
                               {/* Leaderboard Opt-In Checkbox */}
-                              <label className="flex items-center mt-2 cursor-pointer">
+                              <label className="admin-check">
                                 <input
                                   type="checkbox"
                                   checked={studentOptIns.get(student.id) || false}
                                   onChange={() => toggleLeaderboardOptIn(student.id, studentOptIns.get(student.id) || false)}
                                   disabled={!canEditStudentProfile}
-                                  className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
+                                  className="h-4 w-4 rounded border-gray-300"
                                 />
-                                <span className="ml-2 text-sm text-gray-700">
+                                <span className="text-gray-700">
                                   {studentOptIns.get(student.id) ? (
-                                    <span className="text-green-600 font-medium">✓ Leaderboard Enabled</span>
+                                    <span className="font-medium">Leaderboard enabled</span>
                                   ) : (
-                                    <span>Enable Leaderboard</span>
+                                    <span>Enable leaderboard</span>
                                   )}
                                 </span>
                               </label>
                               {/* Analytics Opt-In Checkbox */}
-                              <label className="flex items-center mt-2 cursor-pointer">
+                              <label className="admin-check">
                                 <input
                                   type="checkbox"
                                   checked={studentAnalyticsOptIns.get(student.id) || false}
                                   onChange={() => toggleAnalyticsOptIn(student.id, studentAnalyticsOptIns.get(student.id) || false)}
                                   disabled={!canEditStudentProfile}
-                                  className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                  className="h-4 w-4 rounded border-gray-300"
                                 />
-                                <span className="ml-2 text-sm text-gray-700">
+                                <span className="text-gray-700">
                                   {studentAnalyticsOptIns.get(student.id) ? (
-                                    <span className="text-blue-600 font-medium">✓ Analytics Enabled</span>
+                                    <span className="font-medium">Analytics enabled</span>
                                   ) : (
-                                    <span>Enable Analytics</span>
+                                    <span>Enable analytics</span>
                                   )}
                                 </span>
                               </label>
                               {/* Class Total Included Checkbox */}
-                              <label className="flex items-center mt-2 cursor-pointer">
+                              <label className="admin-check">
                                 <input
                                   type="checkbox"
                                   checked={studentClassTotalIncluded.get(student.id) || false}
                                   onChange={() => toggleClassTotalIncluded(student.id, studentClassTotalIncluded.get(student.id) || false)}
                                   disabled={!canEditStudentProfile}
-                                  className="h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                                  className="h-4 w-4 rounded border-gray-300"
                                 />
-                                <span className="ml-2 text-sm text-gray-700">
+                                <span className="text-gray-700">
                                   {studentClassTotalIncluded.get(student.id) ? (
-                                    <span className="text-purple-600 font-medium">✓ Counts Toward Class Total</span>
+                                    <span className="font-medium">Counts toward class total</span>
                                   ) : (
-                                    <span>Include in Class Total</span>
+                                    <span>Include in class total</span>
                                   )}
                                 </span>
                               </label>
                               {/* Class Total Visible Checkbox */}
-                              <label className="flex items-center mt-2 cursor-pointer">
+                              <label className="admin-check">
                                 <input
                                   type="checkbox"
                                   checked={studentClassTotalVisible.get(student.id) || false}
                                   onChange={() => toggleClassTotalVisible(student.id, studentClassTotalVisible.get(student.id) || false)}
                                   disabled={!canEditStudentProfile}
-                                  className="h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                                  className="h-4 w-4 rounded border-gray-300"
                                 />
-                                <span className="ml-2 text-sm text-gray-700">
+                                <span className="text-gray-700">
                                   {studentClassTotalVisible.get(student.id) ? (
-                                    <span className="text-purple-600 font-medium">✓ Can View Class Total</span>
+                                    <span className="font-medium">Can view class total</span>
                                   ) : (
-                                    <span>Allow Viewing Class Total</span>
+                                    <span>Allow viewing class total</span>
                                   )}
                                 </span>
                               </label>
+                              </div>
                             </div>
                             <div className="flex items-center justify-between sm:justify-end gap-2">
                               <button
                                 onClick={() => setSelectedStudent(student.id)}
-                                className={`px-3 py-1 rounded text-sm font-medium flex-1 sm:flex-none ${
-                                  selectedStudent === student.id
-                                    ? 'bg-green-100 text-green-700'
-                                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                                }`}
+                                className={`admin-btn admin-btn-sm flex-1 sm:flex-none ${selectedStudent === student.id ? 'admin-btn-selected' : 'admin-btn-secondary'}`}
                               >
                                 {selectedStudent === student.id ? 'Selected' : 'Manage'}
                               </button>
                               <button
                                 onClick={() => startEditStudent(student)}
+                                aria-label={`Edit ${getStudentDisplayName(student)}`}
+                                title="Edit"
                                 disabled={!canEditStudentProfile}
-                                className="p-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="admin-icon-btn"
                               >
                                 <PencilIcon className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => deleteStudent(student)}
+                                aria-label={`Delete ${getStudentDisplayName(student)}`}
+                                title="Delete"
                                 disabled={!canDeleteStudentProfile}
-                                className="p-2 text-red-600 hover:text-red-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                className="admin-icon-btn admin-icon-btn-danger"
                               >
                                 <TrashIcon className="w-4 h-4" />
                               </button>
@@ -3299,14 +3171,14 @@ const AdminDashboardContent = () => {
                 </div>
 
                 {/* Student Selection (Keep for backward compatibility) */}
-                <div className="mb-6 p-4 rounded-lg" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
+                <div className="admin-card mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Select Student for Materials/Assignments Management
                   </label>
                   <select
                     value={selectedStudent}
                     onChange={(e) => setSelectedStudent(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full admin-input"
                   >
                     <option value="">Choose a student...</option>
                     {students.map((student) => (
@@ -3320,17 +3192,17 @@ const AdminDashboardContent = () => {
                 {selectedStudent && (
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Practice Config Section */}
-                    <div className="p-4 rounded-lg order-0 lg:order-0 lg:col-span-3" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <PlayIcon className="h-5 w-5 mr-2" />
+                    <div className="admin-card lg:col-span-3">
+                      <h3 className="admin-card-title">
+                        <PlayIcon className="h-5 w-5" />
                         Practice Configuration
                       </h3>
                       <StudentPracticeAssignment studentId={selectedStudent} />
                     </div>
                     {/* Materials Section */}
-                    <div className="p-4 rounded-lg order-1 lg:order-1" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <DocumentArrowUpIcon className="h-5 w-5 mr-2" />
+                    <div className="admin-card">
+                      <h3 className="admin-card-title">
+                        <DocumentArrowUpIcon className="h-5 w-5" />
                         <span className="hidden sm:inline">Materials & Sheet Music</span>
                         <span className="sm:hidden">Materials</span>
                       </h3>
@@ -3348,10 +3220,10 @@ const AdminDashboardContent = () => {
                             if (file) handleFileUpload(file);
                           }}
                           disabled={uploadingFile}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full admin-input"
                         />
                         {uploadingFile && (
-                          <p className="text-sm text-blue-600 mt-1">Uploading...</p>
+                          <p className="text-sm text-gray-600 mt-1">Uploading...</p>
                         )}
                       </div>
 
@@ -3373,7 +3245,7 @@ const AdminDashboardContent = () => {
                               </div>
                               <button
                                 onClick={() => deleteStudentMaterial(material.id)}
-                                className="text-red-600 hover:text-red-800 p-1"
+                                className="admin-icon-btn admin-icon-btn-danger"
                               >
                                 <XMarkIcon className="h-4 w-4" />
                               </button>
@@ -3384,9 +3256,9 @@ const AdminDashboardContent = () => {
                     </div>
 
                     {/* Assignments Section */}
-                    <div className="p-4 rounded-lg order-2 lg:order-2" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <CheckIcon className="h-5 w-5 mr-2" />
+                    <div className="admin-card">
+                      <h3 className="admin-card-title">
+                        <CheckIcon className="h-5 w-5" />
                         <span className="hidden sm:inline">Weekly Assignments</span>
                         <span className="sm:hidden">Assignments</span>
                       </h3>
@@ -3394,8 +3266,8 @@ const AdminDashboardContent = () => {
                       {/* Add/Edit Assignment Form */}
                       <div className="mb-4 p-3 bg-gray-50 rounded">
                         {isEditMode && (
-                          <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded">
-                            <p className="text-sm text-blue-800 font-medium">
+                          <div className="mb-2 p-2 rounded-md bg-gray-100">
+                            <p className="text-sm text-gray-700 font-medium">
                               Editing: {editingAssignment?.title}
                             </p>
                           </div>
@@ -3406,14 +3278,14 @@ const AdminDashboardContent = () => {
                             placeholder="Assignment title"
                             value={newAssignment.title}
                             onChange={(e) => setNewAssignment({...newAssignment, title: e.target.value})}
-                            className="w-full p-2 border border-gray-300 rounded text-sm"
+                            className="w-full admin-input"
                           />
                         </div>
                         <textarea
                           placeholder="Assignment description/instructions (press Enter for new lines)"
                           value={newAssignment.description}
                           onChange={(e) => setNewAssignment({...newAssignment, description: e.target.value})}
-                          className="w-full p-2 border border-gray-300 rounded text-sm mb-2"
+                          className="w-full mb-2 admin-input"
                           rows={3}
                         />
                         <div className="flex gap-2">
@@ -3421,13 +3293,13 @@ const AdminDashboardContent = () => {
                             <>
                               <button
                                 onClick={updateAssignment}
-                                className="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 text-sm"
+                                className="admin-btn admin-btn-primary flex-1"
                               >
                                 Update Assignment
                               </button>
                               <button
                                 onClick={cancelEditAssignment}
-                                className="flex-1 bg-gray-600 text-white py-2 px-4 rounded hover:bg-gray-700 text-sm"
+                                className="admin-btn admin-btn-secondary flex-1"
                               >
                                 Cancel
                               </button>
@@ -3435,7 +3307,7 @@ const AdminDashboardContent = () => {
                           ) : (
                             <button
                               onClick={addAssignment}
-                              className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 text-sm"
+                              className="admin-btn admin-btn-primary w-full"
                             >
                               Add Assignment
                             </button>
@@ -3462,14 +3334,14 @@ const AdminDashboardContent = () => {
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => editAssignment(assignment)}
-                                  className="text-blue-600 hover:text-blue-800 p-1"
+                                  className="admin-icon-btn"
                                   title="Edit Assignment"
                                 >
                                   <PencilIcon className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={() => deleteAssignment(assignment.id)}
-                                  className="text-red-600 hover:text-red-800 p-1"
+                                  className="admin-icon-btn admin-icon-btn-danger"
                                   title="Delete Assignment"
                                 >
                                   <XMarkIcon className="h-4 w-4" />
@@ -3482,9 +3354,9 @@ const AdminDashboardContent = () => {
                     </div>
 
                     {/* Videos Section */}
-                    <div className="p-4 rounded-lg order-3 lg:order-3" style={{backgroundColor: 'rgba(255,255,255,0.8)'}}>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <PlayIcon className="h-5 w-5 mr-2" />
+                    <div className="admin-card">
+                      <h3 className="admin-card-title">
+                        <PlayIcon className="h-5 w-5" />
                         <span className="hidden sm:inline">Educational Videos</span>
                         <span className="sm:hidden">Videos</span>
                       </h3>
@@ -3497,14 +3369,14 @@ const AdminDashboardContent = () => {
                             placeholder="YouTube URL (e.g., https://www.youtube.com/watch?v=...)"
                             value={newVideoUrl}
                             onChange={(e) => setNewVideoUrl(e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded text-sm mb-2"
+                            className="w-full mb-2 admin-input"
                             disabled={addingVideo}
                           />
                           <textarea
                             placeholder="Optional description or notes about this video"
                             value={newVideoDescription}
                             onChange={(e) => setNewVideoDescription(e.target.value)}
-                            className="w-full p-2 border border-gray-300 rounded text-sm"
+                            className="w-full admin-input"
                             rows={2}
                             disabled={addingVideo}
                           />
@@ -3512,11 +3384,7 @@ const AdminDashboardContent = () => {
                         <button
                           onClick={addStudentVideo}
                           disabled={addingVideo || !newVideoUrl.trim()}
-                          className={`w-full py-2 px-4 rounded text-sm font-medium ${
-                            addingVideo || !newVideoUrl.trim()
-                              ? 'bg-gray-400 text-white cursor-not-allowed'
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
-                          }`}
+                          className="admin-btn admin-btn-primary w-full"
                         >
                           {addingVideo ? 'Adding Video...' : 'Add Video'}
                         </button>
@@ -3553,14 +3421,14 @@ const AdminDashboardContent = () => {
                                   href={`https://www.youtube.com/watch?v=${video.youtube_id}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 p-1"
+                                  className="admin-icon-btn"
                                   title="Open on YouTube"
                                 >
                                   <LinkIcon className="h-4 w-4" />
                                 </a>
                                 <button
                                   onClick={() => deleteStudentVideo(video.id)}
-                                  className="text-red-600 hover:text-red-800 p-1"
+                                  className="admin-icon-btn admin-icon-btn-danger"
                                   title="Delete Video"
                                 >
                                   <XMarkIcon className="h-4 w-4" />
@@ -3589,16 +3457,16 @@ const AdminDashboardContent = () => {
             {/* Teachers Tab Content */}
             {activeTab === 'teachers' && (
               <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-800">Teacher Management</h2>
+                <div className="admin-section-header">
+                  <h2 className="admin-section-title">Teacher Management</h2>
                   <div className="text-sm text-gray-600">
                     Total Teachers: {teachers.length}
                   </div>
                 </div>
 
                 {/* Promote Student to Teacher */}
-                <div className="mb-8 p-6 rounded-lg border-2 border-green-200" style={{backgroundColor: 'rgba(255,255,255,0.9)'}}>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Promote Student to Teacher</h3>
+                <div className="admin-card mb-6">
+                  <h3 className="admin-card-title">Promote Student to Teacher</h3>
                   
                   {/* Student Selection */}
                   <div className="mb-4">
@@ -3608,7 +3476,7 @@ const AdminDashboardContent = () => {
                     <select
                       value={selectedStudentForPromotion}
                       onChange={(e) => setSelectedStudentForPromotion(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      className="w-full admin-input"
                     >
                       <option value="">Choose a student...</option>
                       {allStudents.filter(student => 
@@ -3636,7 +3504,7 @@ const AdminDashboardContent = () => {
                               ...prev,
                               [key]: e.target.checked
                             }))}
-                            className="mr-2 rounded focus:ring-green-500"
+                            className="mr-2 rounded"
                           />
                           <span className="text-sm text-gray-700">
                             {key.replace('can_', '').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -3649,7 +3517,7 @@ const AdminDashboardContent = () => {
                   <button
                     onClick={promoteStudentToTeacher}
                     disabled={!selectedStudentForPromotion}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="admin-btn admin-btn-primary"
                   >
                     Promote to Teacher
                   </button>
@@ -3658,24 +3526,23 @@ const AdminDashboardContent = () => {
                 {/* Teachers List */}
                 <div className="space-y-4">
                   {loadingTeachers ? (
-                    <div className="text-center py-8 text-gray-600">Loading teachers...</div>
+                    <div className="admin-empty">Loading teachers...</div>
                   ) : teachers.length === 0 ? (
-                    <div className="text-center py-8 text-gray-600">
+                    <div className="admin-empty">
                       No teachers yet. Promote a student to get started!
                     </div>
                   ) : (
                     teachers.map((teacher) => (
                       <div
                         key={teacher.id}
-                        className="p-6 rounded-lg border border-gray-200"
-                        style={{backgroundColor: 'rgba(255,255,255,0.9)'}}
+                        className="admin-card"
                       >
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <h3 className="text-lg font-semibold text-gray-800">
                               {teacher.student?.name || teacher.email}
                               {teacher.email === 'grantmatai@gmail.com' && (
-                                <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                                <span className="admin-badge admin-badge-attention ml-2">
                                   Super Admin
                                 </span>
                               )}
@@ -3690,13 +3557,13 @@ const AdminDashboardContent = () => {
                               <>
                                 <button
                                   onClick={() => setSelectedTeacherForEdit(teacher)}
-                                  className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200"
+                                  className="admin-btn admin-btn-secondary admin-btn-sm"
                                 >
                                   Edit Permissions
                                 </button>
                                 <button
                                   onClick={() => demoteTeacher(teacher.id, teacher.email)}
-                                  className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200"
+                                  className="admin-btn admin-btn-danger-outline admin-btn-sm"
                                 >
                                   Demote
                                 </button>
@@ -3712,10 +3579,10 @@ const AdminDashboardContent = () => {
                             {Object.entries(teacher.permissions).map(([key, value]) => (
                               <span
                                 key={key}
-                                className={`px-2 py-1 text-xs rounded-full ${
+                                className={`admin-badge ${
                                   value 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-gray-100 text-gray-600'
+                                    ? 'admin-badge-success' 
+                                    : 'admin-badge-neutral'
                                 }`}
                               >
                                 {key.replace('can_', '').replace('_', ' ')}
@@ -3727,10 +3594,10 @@ const AdminDashboardContent = () => {
                         <div className="mb-4">
                           <h4 className="text-sm font-medium text-gray-700 mb-2">Portal Selector Access:</h4>
                           <span
-                            className={`px-2 py-1 text-xs rounded-full ${
+                            className={`admin-badge ${
                               teacher.allow_portal_student_selector
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-600'
+                                ? 'admin-badge-success'
+                                : 'admin-badge-neutral'
                             }`}
                           >
                             {teacher.allow_portal_student_selector ? 'Enabled' : 'Disabled'}
@@ -3747,7 +3614,7 @@ const AdminDashboardContent = () => {
                               {teacher.assignedStudents.map((student: any) => (
                                 <span
                                   key={student.id}
-                                  className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                                  className="admin-badge admin-badge-neutral"
                                 >
                                   {getStudentDisplayName(student)}
                                 </span>
@@ -3765,7 +3632,7 @@ const AdminDashboardContent = () => {
                 {/* Edit Teacher Permissions Modal */}
                 {selectedTeacherForEdit && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                    <div className="admin-modal bg-white max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                       <div className="p-6">
                         <div className="flex justify-between items-center mb-4">
                           <h3 className="text-lg font-semibold text-gray-800">
@@ -3773,7 +3640,7 @@ const AdminDashboardContent = () => {
                           </h3>
                           <button
                             onClick={() => setSelectedTeacherForEdit(null)}
-                            className="p-2 text-gray-400 hover:text-gray-600"
+                            className="admin-icon-btn"
                           >
                             <XMarkIcon className="w-5 h-5" />
                           </button>
@@ -3795,7 +3662,7 @@ const AdminDashboardContent = () => {
                                       [key]: e.target.checked
                                     }
                                   }))}
-                                  className="mr-3 rounded focus:ring-green-500"
+                                  className="mr-3 rounded"
                                 />
                                 <div>
                                   <span className="font-medium text-gray-800">
@@ -3832,12 +3699,12 @@ const AdminDashboardContent = () => {
                                       setTeacherStudentAssignments(prev => prev.filter(id => id !== student.id));
                                     }
                                   }}
-                                  className="mr-3 rounded focus:ring-green-500"
+                                  className="mr-3 rounded"
                                 />
                                 <div>
                                   <span className="font-medium text-gray-800">{getStudentDisplayName(student)}</span>
                                   {student.assigned_teacher_id && student.assigned_teacher_id !== selectedTeacherForEdit.id && (
-                                    <p className="text-xs text-orange-600">Currently assigned to another teacher</p>
+                                    <p className="text-xs text-gray-600">Currently assigned to another teacher</p>
                                   )}
                                 </div>
                               </label>
@@ -3855,7 +3722,7 @@ const AdminDashboardContent = () => {
                                 ...prev,
                                 allow_portal_student_selector: e.target.checked
                               }))}
-                              className="mr-3 rounded focus:ring-green-500"
+                              className="mr-3 rounded"
                             />
                             <div>
                               <span className="font-medium text-gray-800">Allow assigned-student selector in portal</span>
@@ -3867,28 +3734,28 @@ const AdminDashboardContent = () => {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex space-x-3">
+                        <div className="flex flex-wrap gap-3">
                           <button
                             onClick={() => updateTeacherPermissions(selectedTeacherForEdit.id)}
-                            className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                            className="admin-btn admin-btn-primary flex-1"
                           >
                             Update Permissions
                           </button>
                           <button
                             onClick={() => updateStudentAssignments(selectedTeacherForEdit.id)}
-                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                            className="admin-btn admin-btn-primary flex-1"
                           >
                             Update Assignments
                           </button>
                           <button
                             onClick={() => updateTeacherPortalSelectorAccess(selectedTeacherForEdit.id)}
-                            className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                            className="admin-btn admin-btn-primary flex-1"
                           >
                             Update Portal Access
                           </button>
                           <button
                             onClick={() => setSelectedTeacherForEdit(null)}
-                            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                            className="admin-btn admin-btn-secondary"
                           >
                             Cancel
                           </button>
@@ -3899,7 +3766,7 @@ const AdminDashboardContent = () => {
                 )}
               </div>
             )}
-          </div>
+          </main>
         </div>
       </div>
     </AdminAuth>

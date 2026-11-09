@@ -129,7 +129,7 @@ export default function StudentPracticeAssignment({ studentId }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-6">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-700" />
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-500" />
         <span className="ml-2 text-sm text-gray-500">Loading practice config...</span>
       </div>
     );
@@ -163,7 +163,7 @@ export default function StudentPracticeAssignment({ studentId }: Props) {
                   type="checkbox"
                   checked={assignedTrackIds.has(track.id)}
                   onChange={() => toggleTrack(track.id)}
-                  className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
+                  className="h-4 w-4 rounded border-gray-300"
                 />
                 <span className="ml-2 text-sm text-gray-800">{track.name}</span>
               </label>
@@ -186,7 +186,7 @@ export default function StudentPracticeAssignment({ studentId }: Props) {
                   type="checkbox"
                   checked={assignedPatternIds.has(pattern.id)}
                   onChange={() => togglePattern(pattern.id)}
-                  className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
+                  className="h-4 w-4 rounded border-gray-300"
                 />
                 <span className="ml-2 text-sm text-gray-800 font-mono">
                   {pattern.pattern_string}
@@ -207,11 +207,7 @@ export default function StudentPracticeAssignment({ studentId }: Props) {
               <button
                 key={key.id}
                 onClick={() => toggleKey(key.id)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                  assignedKeyIds.has(key.id)
-                    ? 'bg-green-600 text-white border-green-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-green-400'
-                }`}
+                className={`admin-btn admin-btn-sm ${assignedKeyIds.has(key.id) ? 'admin-btn-selected' : 'admin-btn-secondary'}`}
               >
                 {key.key_name}
                 {assignedKeyIds.has(key.id) && <CheckIcon className="h-3 w-3 inline ml-1" />}
@@ -226,11 +222,7 @@ export default function StudentPracticeAssignment({ studentId }: Props) {
         <button
           onClick={saveAssignments}
           disabled={!hasChanges || saving}
-          className={`w-full px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center ${
-            hasChanges
-              ? 'bg-green-600 text-white hover:bg-green-700'
-              : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-          }`}
+          className="admin-btn admin-btn-primary w-full"
         >
           {saving ? (
             <>

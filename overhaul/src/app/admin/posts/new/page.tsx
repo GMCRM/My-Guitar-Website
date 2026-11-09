@@ -193,27 +193,26 @@ export default function NewBlogPost() {
     <AdminAuth>
       <Navigation />
       
-      <div className="min-h-screen" style={{backgroundColor: '#87AA6A'}}>
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 py-8">
+      <div className="admin-shell">
+        <div className="max-w-3xl mx-auto px-4 lg:px-8 py-8">
           {/* Header */}
-          <div className="mb-8">
+          <div className="admin-page-header">
             <Link 
               href="/admin"
-              className="inline-flex items-center text-white hover:text-gray-200 mb-4 transition-colors"
+              className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-3"
             >
               <ArrowLeftIcon className="w-4 h-4 mr-2" />
               Back to Dashboard
             </Link>
-            <h1 className="text-3xl font-bold text-white mb-2">Create New Blog Post</h1>
-            <p className="text-white text-opacity-80">Write and publish a new blog post</p>
+            <h1>Create New Blog Post</h1>
+            <p>Write and publish a new blog post</p>
           </div>
 
           {/* Form */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl p-8"
-            style={{backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)'}}
+            className="admin-card"
           >
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Title */}
@@ -226,7 +225,7 @@ export default function NewBlogPost() {
                   id="title"
                   value={postData.title}
                   onChange={(e) => setPostData({...postData, title: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 text-gray-900"
+                  className="admin-input w-full"
                   placeholder="Enter your blog post title..."
                   required
                 />
@@ -263,7 +262,7 @@ export default function NewBlogPost() {
                         <div className="flex text-sm text-gray-600">
                           <label
                             htmlFor="image-upload"
-                            className="relative cursor-pointer bg-white rounded-md font-medium text-orange-600 hover:text-orange-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-orange-500"
+                            className="relative cursor-pointer bg-white rounded-md font-medium text-gray-900 underline focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-orange-500"
                           >
                             <span>Upload an image</span>
                             <input
@@ -294,7 +293,7 @@ export default function NewBlogPost() {
                   value={postData.excerpt}
                   onChange={(e) => setPostData({...postData, excerpt: e.target.value})}
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 text-gray-900"
+                  className="admin-input w-full"
                   placeholder="Brief description of your post..."
                   required
                 />
@@ -310,7 +309,7 @@ export default function NewBlogPost() {
                   value={postData.content}
                   onChange={(e) => setPostData({...postData, content: e.target.value})}
                   rows={12}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 text-gray-900"
+                  className="admin-input w-full"
                   placeholder="Write your blog post content here..."
                   required
                 />
@@ -327,13 +326,13 @@ export default function NewBlogPost() {
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-orange-400 text-gray-900"
+                    className="admin-input flex-1"
                     placeholder="Add a tag..."
                   />
                   <button
                     type="button"
                     onClick={addTag}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    className="admin-btn admin-btn-secondary"
                   >
                     Add
                   </button>
@@ -343,13 +342,13 @@ export default function NewBlogPost() {
                     {postData.tags.map((tag, index) => (
                       <span
                         key={index}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                        className="admin-badge admin-badge-neutral"
                       >
                         {tag}
                         <button
                           type="button"
                           onClick={() => removeTag(tag)}
-                          className="ml-2 text-blue-600 hover:text-blue-800"
+                          className="ml-1 text-gray-500 hover:text-gray-800"
                         >
                           ×
                         </button>
@@ -367,7 +366,7 @@ export default function NewBlogPost() {
                     id="featured"
                     checked={postData.featured}
                     onChange={(e) => setPostData({...postData, featured: e.target.checked})}
-                    className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                    className="h-4 w-4 border-gray-300 rounded"
                   />
                   <label htmlFor="featured" className="ml-2 block text-sm text-gray-700">
                     Featured Post
@@ -379,7 +378,7 @@ export default function NewBlogPost() {
                     id="published"
                     checked={postData.published}
                     onChange={(e) => setPostData({...postData, published: e.target.checked})}
-                    className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                    className="h-4 w-4 border-gray-300 rounded"
                   />
                   <label htmlFor="published" className="ml-2 block text-sm text-gray-700">
                     Publish Immediately
@@ -388,10 +387,10 @@ export default function NewBlogPost() {
               </div>
 
               {/* Actions */}
-              <div className="flex justify-between pt-6">
+              <div className="flex flex-wrap justify-between gap-3 pt-6">
                 <Link
                   href="/admin"
-                  className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="admin-btn admin-btn-secondary"
                 >
                   Cancel
                 </Link>
@@ -400,7 +399,7 @@ export default function NewBlogPost() {
                     type="submit"
                     disabled={isLoading || isUploading}
                     onClick={() => setPostData({...postData, published: false})}
-                    className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+                    className="admin-btn admin-btn-secondary"
                   >
                     {isLoading ? (isUploading ? 'Uploading...' : 'Saving...') : 'Save as Draft'}
                   </button>
@@ -408,8 +407,7 @@ export default function NewBlogPost() {
                     type="submit"
                     disabled={isLoading || isUploading}
                     onClick={() => setPostData({...postData, published: true})}
-                    className="px-6 py-3 text-white rounded-lg transition-colors disabled:opacity-50 hover-lift"
-                    style={{backgroundColor: '#BC6A1B'}}
+                    className="admin-btn admin-btn-primary"
                   >
                     {isLoading ? (isUploading ? 'Uploading...' : 'Publishing...') : 'Publish Post'}
                   </button>

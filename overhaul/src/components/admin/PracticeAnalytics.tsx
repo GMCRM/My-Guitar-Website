@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ChartBarIcon } from '@heroicons/react/24/outline';
+import { ChartBarIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
 import { supabase } from '@/lib/supabase';
 
 interface PracticeAnalyticsRecord {
@@ -155,12 +155,12 @@ export default function PracticeAnalytics() {
 
   const getSortIcon = (field: keyof PracticeAnalyticsRecord) => {
     if (sortField !== field) {
-      return <span className="text-gray-400 ml-1">↕</span>;
+      return <ChevronUpDownIcon className="inline h-3.5 w-3.5 text-gray-400 ml-1" aria-hidden="true" />;
     }
     return sortDirection === 'asc' ? (
-      <span className="text-green-600 ml-1">↑</span>
+      <span className="text-gray-700 ml-1">↑</span>
     ) : (
-      <span className="text-green-600 ml-1">↓</span>
+      <span className="text-gray-700 ml-1">↓</span>
     );
   };
 
@@ -196,40 +196,37 @@ export default function PracticeAnalytics() {
     : '0';
 
   return (
-    <div className="p-6">
+    <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <ChartBarIcon className="h-8 w-8 text-green-600 mr-3" />
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Practice Analytics</h2>
-            <p className="text-sm text-gray-600">
-              Historical practice data across all students and months
-            </p>
-          </div>
+      <div className="admin-section-header">
+        <div>
+          <h2 className="admin-section-title">Practice Analytics</h2>
+          <p className="text-sm text-gray-600">
+            Historical practice data across all students and months
+          </p>
         </div>
       </div>
 
       {/* Summary Stats */}
       {sortedData.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
+          <div className="admin-card">
             <p className="text-sm text-gray-600">Total Records</p>
-            <p className="text-2xl font-bold text-gray-800">{sortedData.length}</p>
+            <p className="text-2xl font-semibold text-gray-900">{sortedData.length}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
+          <div className="admin-card">
             <p className="text-sm text-gray-600">Total Practice Days</p>
-            <p className="text-2xl font-bold text-green-600">{totalPracticeDays}</p>
+            <p className="text-2xl font-semibold text-gray-900">{totalPracticeDays}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
+          <div className="admin-card">
             <p className="text-sm text-gray-600">Average Days/Month</p>
-            <p className="text-2xl font-bold text-blue-600">{averagePracticeDays}</p>
+            <p className="text-2xl font-semibold text-gray-900">{averagePracticeDays}</p>
           </div>
         </div>
       )}
 
       {/* Filters */}
-      <div className="mb-6 bg-white p-4 rounded-lg shadow border border-gray-200">
+      <div className="admin-card mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Student Filter */}
           <div>
@@ -239,7 +236,7 @@ export default function PracticeAnalytics() {
             <select
               value={selectedStudent}
               onChange={(e) => setSelectedStudent(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full admin-input"
             >
               <option value="all">All Students</option>
               {uniqueStudents.map((student) => (
@@ -258,7 +255,7 @@ export default function PracticeAnalytics() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full admin-input"
             >
               <option value="all">All Years</option>
               {uniqueYears.map((year) => (
@@ -277,7 +274,7 @@ export default function PracticeAnalytics() {
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full admin-input"
             >
               <option value="all">All Months</option>
               {uniqueMonths.map((month) => (
@@ -356,12 +353,12 @@ export default function PracticeAnalytics() {
                 ))}
                 {/* Total Row */}
                 {sortedData.length > 0 && (
-                  <tr className="bg-green-50 border-t-2 border-green-200">
+                  <tr className="bg-gray-50 border-t-2 border-gray-200">
                     <td colSpan={3} className="px-6 py-4 text-right">
                       <span className="text-lg font-bold text-gray-800">Total Practice Days:</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-4 py-2 rounded-full text-lg font-bold bg-green-600 text-white">
+                      <span className="text-lg font-semibold text-gray-900">
                         {totalPracticeDays} {totalPracticeDays === 1 ? 'day' : 'days'}
                       </span>
                     </td>
